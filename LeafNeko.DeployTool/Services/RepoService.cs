@@ -77,16 +77,23 @@ public class RepoService
             catch (HttpRequestException ex) when (attempt < maxRetries &&
                 (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
                  ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                 ex.StatusCode == System.Net.HttpStatusCode.BadGateway))
+                 ex.StatusCode == System.Net.HttpStatusCode.BadGateway ||
+                 ex.StatusCode == null)) // 无状态码（网络错误）
             {
-                var delay = (int)Math.Pow(2, attempt); // 1s, 2s, 4s
-                Debug.WriteLine($"[RepoService] {fileName} 重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
+                var delay = (int)Math.Pow(2, attempt);
+                Debug.WriteLine($"[RepoService] {fileName} HTTP错误重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
                 await Task.Delay(delay * 1000);
             }
             catch (TaskCanceledException) when (attempt < maxRetries)
             {
                 var delay = (int)Math.Pow(2, attempt);
                 Debug.WriteLine($"[RepoService] {fileName} 超时重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
+                await Task.Delay(delay * 1000);
+            }
+            catch (IOException) when (attempt < maxRetries)
+            {
+                var delay = (int)Math.Pow(2, attempt);
+                Debug.WriteLine($"[RepoService] {fileName} 连接中断重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
                 await Task.Delay(delay * 1000);
             }
         }

@@ -190,7 +190,9 @@ public class MainViewModel : INotifyPropertyChanged
         foreach (var app in apps)
         {
             cats.Add(app.Category);
-            AllApps.Add(new AppItemViewModel(app));
+            var vm = new AppItemViewModel(app);
+            vm.PropertyChanged += OnAppItemPropertyChanged;
+            AllApps.Add(vm);
         }
 
         foreach (var cat in cats)
@@ -199,6 +201,14 @@ public class MainViewModel : INotifyPropertyChanged
         TotalCount = AllApps.Count;
         ApplyFilter();
         UpdateSelectionCount();
+    }
+
+    private void OnAppItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
+        {
+            UpdateSelectionCount();
+        }
     }
 
     public void LoadDemoData()

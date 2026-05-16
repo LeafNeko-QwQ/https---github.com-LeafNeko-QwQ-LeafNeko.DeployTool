@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Text;
 
 namespace LeafNeko.DeployTool.Services;
 
@@ -342,34 +343,64 @@ public class DeployService
         return string.IsNullOrEmpty(fileName) ? "setup.exe" : SanitizeFileName(fileName) + ".exe";
     }
 
-    private static async Task ExtractZipAsync(string zipPath, string destDir)
-    {
-        await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, destDir, true));
-    }
-
-    private async Task ExtractZipWithProgressAsync(string zipPath, string destDir,
+    private static async Task ExtractZipWithProgressAsync(string zipPath, string destDir,
         Action<double> progressCallback)
     {
         await Task.Run(() =>
         {
-            using var archive = ZipFile.OpenRead(zipPath);
-            var total = archive.Entries.Count;
-            var processed = 0;
+            var encoding = DetectZipEncoding(zipPath);
+            ExtractEntries(zipPath, destDir, encoding, progressCallback);
+        });
+    }
 
+    /// <summary>
+    /// 检测 ZIP 文件的正确编码。先尝试 UTF-8，如果条目名包含替换字符则回退到 GBK。
+    /// </summary>
+    private static Encoding DetectZipEncoding(string zipPath)
+    {
+        try
+        {
+            using var fs = File.OpenRead(zipPath);
+            using var archive = new ZipArchive(fs, ZipArchiveMode.Read, false, Encoding.UTF8);
             foreach (var entry in archive.Entries)
             {
-                var destPath = Path.Combine(destDir, entry.FullName);
-                if (string.IsNullOrEmpty(entry.Name))
-                    Directory.CreateDirectory(destPath);
-                else
+                if (entry.FullName.Contains('�'))
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-                    entry.ExtractToFile(destPath, true);
+                    // UTF-8 解码失败，回退到 GBK
+                    return Encoding.GetEncoding(936);
                 }
-                processed++;
-                progressCallback((double)processed / total * 100);
             }
-        });
+        }
+        catch { }
+        return Encoding.UTF8;
+    }
+
+    private static void ExtractEntries(string zipPath, string destDir, Encoding encoding,
+        Action<double> progressCallback)
+    {
+        using var fs = File.OpenRead(zipPath);
+        using var archive = new ZipArchive(fs, ZipArchiveMode.Read, false, encoding);
+        var total = archive.Entries.Count;
+        var processed = 0;
+
+        foreach (var entry in archive.Entries)
+        {
+            var destPath = Path.Combine(destDir, entry.FullName);
+            if (string.IsNullOrEmpty(entry.Name))
+                Directory.CreateDirectory(destPath);
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+                entry.ExtractToFile(destPath, true);
+            }
+            processed++;
+            progressCallback((double)processed / total * 100);
+        }
+    }
+
+    private static async Task ExtractZipAsync(string zipPath, string destDir)
+    {
+        await ExtractZipWithProgressAsync(zipPath, destDir, _ => { });
     }
 
     private static void CopyDirectoryRecursive(string sourceDir, string destDir)
