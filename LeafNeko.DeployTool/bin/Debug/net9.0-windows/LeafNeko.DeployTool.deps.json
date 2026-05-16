@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {
-      "LeafNeko.DeployTool/1.0.10": {
+      "LeafNeko.DeployTool/1.0.11": {
         "runtime": {
           "LeafNeko.DeployTool.dll": {}
         }
@@ -14,7 +14,7 @@
     }
   },
   "libraries": {
-    "LeafNeko.DeployTool/1.0.10": {
+    "LeafNeko.DeployTool/1.0.11": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

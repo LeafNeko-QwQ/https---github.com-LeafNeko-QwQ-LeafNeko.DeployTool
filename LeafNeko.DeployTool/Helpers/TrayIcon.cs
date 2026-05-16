@@ -3,7 +3,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Threading;
 
 namespace LeafNeko.DeployTool.Helpers;
 
@@ -36,6 +35,7 @@ public class TrayIcon : IDisposable
         get => _visible;
         set
         {
+            if (_visible == value) return;
             _visible = value;
             UpdateIcon(value);
         }
@@ -122,19 +122,8 @@ public class TrayIcon : IDisposable
     [DllImport("shell32.dll")]
     private static extern bool Shell_NotifyIcon(int dwMessage, ref NotifyIconData lpData);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr CreateWindowEx(int dwExStyle, string lpClassName, string lpWindowName,
-        int dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu,
-        IntPtr hInstance, IntPtr lpParam);
-
     [DllImport("user32.dll", SetLastError = true)]
     private static extern int RegisterWindowMessage(string lpString);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr DefWindowProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern bool DestroyWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern IntPtr LoadImage(IntPtr hInst, string name, int type, int cx, int cy, int fuLoad);
@@ -163,45 +152,19 @@ public class TrayIcon : IDisposable
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    /// <summary>
+    /// 创建仅用于接收托盘消息的隐藏窗口（HwndSource 原生创建，无 raw Win32 窗口）。
+    /// </summary>
     private static HwndSource CreateMessageWindow(HwndSourceHook hook)
     {
-        var wndProcDelegate = new WndProcDelegate(DefWindowProc);
-        var wc = new WndClass { lpszClassName = "LeafNekoTrayWindow", lpfnWndProc = Marshal.GetFunctionPointerForDelegate(wndProcDelegate) };
-        RegisterClass(ref wc);
-
-        var hwnd = CreateWindowEx(0, "LeafNekoTrayWindow", "", 0, 0, 0, 0, 0,
-            IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-
         var parameters = new HwndSourceParameters("LeafNekoTraySource")
         {
-            ParentWindow = hwnd,
-            WindowClassStyle = 0,
             WindowStyle = 0,
-            ExtendedWindowStyle = 0
+            ExtendedWindowStyle = 0x00000080 // WS_EX_TOOLWINDOW
         };
         var source = new HwndSource(parameters);
         source.AddHook(hook);
         return source;
-    }
-
-    private delegate IntPtr WndProcDelegate(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern ushort RegisterClass(ref WndClass lpWndClass);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct WndClass
-    {
-        public int style;
-        public IntPtr lpfnWndProc;
-        public int cbClsExtra;
-        public int cbWndExtra;
-        public IntPtr hInstance;
-        public IntPtr hIcon;
-        public IntPtr hCursor;
-        public IntPtr hbrBackground;
-        public string lpszMenuName;
-        public string lpszClassName;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

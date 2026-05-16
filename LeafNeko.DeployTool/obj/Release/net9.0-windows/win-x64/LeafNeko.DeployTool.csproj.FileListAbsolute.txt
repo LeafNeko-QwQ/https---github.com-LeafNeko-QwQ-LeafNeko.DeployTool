@@ -421,3 +421,5 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\Con
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Themes\DarkTheme.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\DeployProgressWindow.g.cs
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\DeployProgressWindow.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Controls\StatusBar.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Controls\StatusBar.g.cs

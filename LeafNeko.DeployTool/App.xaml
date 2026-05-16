@@ -6,15 +6,15 @@
              ShutdownMode="OnLastWindowClose">
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/PinkTheme.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-
-            <!-- 布尔反转转换器 -->
+            <!-- 转换器（必须在主题之前定义，主题 ShimmerProgressBar 会引用） -->
             <local:InvertBoolConverter x:Key="InvertBoolConverter"/>
             <conv:ProgressToVisibilityConverter x:Key="ProgressToVisibilityConverter"/>
             <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/PinkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

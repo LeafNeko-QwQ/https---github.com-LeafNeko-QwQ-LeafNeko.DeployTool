@@ -33,6 +33,23 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 全局崩溃捕获 — 写入桌面 crash.log
+        var crashLog = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            "leafneko_crash.log");
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            System.IO.File.WriteAllText(crashLog,
+                $"=== 未处理异常 ===\n{DateTime.Now}\n{ex}\n");
+        };
+        DispatcherUnhandledException += (_, args) =>
+        {
+            System.IO.File.WriteAllText(crashLog,
+                $"=== Dispatcher 异常 ===\n{DateTime.Now}\n{args.Exception}\n");
+            args.Handled = true;
+        };
+
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var config = DeployConfig.Load();

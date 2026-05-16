@@ -31,3 +31,5 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\DeployProgres
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\DeployProgressWindow.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool.sourcelink.json
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Themes\DarkTheme.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Controls\StatusBar.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Controls\StatusBar.g.cs

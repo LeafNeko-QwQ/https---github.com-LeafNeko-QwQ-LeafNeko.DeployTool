@@ -45,16 +45,24 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        PathHelper.EnsureAll();
-        Trace.WriteLine("[MainWindow] 桌面目录已初始化: " + PathHelper.BaseDir);
-        _viewModel.InitChangelog();
-        _viewModel.SystemInfo.Refresh();
-        await _viewModel.LoadAppsAsync();
-        _viewModel.OverallProgress = 0;
-        StatusBar.Show("清单已就绪", StatusBarState.Ready, autoHideMs: 3000);
-        AppCard.RetryRequested += OnRetryAppRequested;
-        _ = CheckSelfUpdateAsync();
-        _ = _repo.MeasureSpeedAsync();
+        try
+        {
+            PathHelper.EnsureAll();
+            _viewModel.InitChangelog();
+            _viewModel.SystemInfo.Refresh();
+            await _viewModel.LoadAppsAsync();
+            _viewModel.OverallProgress = 0;
+            StatusBar.Show("清单已就绪", StatusBarState.Ready, autoHideMs: 3000);
+            AppCard.RetryRequested += OnRetryAppRequested;
+            _ = CheckSelfUpdateAsync();
+            _ = _repo.MeasureSpeedAsync();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[MainWindow] OnLoaded 异常: {ex}");
+            MessageBox.Show($"软件加载失败: {ex.Message}\n\n请检查网络连接后重启应用。",
+                "启动错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private async Task CheckSelfUpdateAsync()
