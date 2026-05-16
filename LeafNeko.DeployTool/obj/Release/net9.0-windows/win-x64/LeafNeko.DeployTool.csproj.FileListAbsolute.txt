@@ -418,3 +418,6 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Generated
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\LeafNeko.DeployTool.sourcelink.json
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\ConfirmDeployWindow.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\ConfirmDeployWindow.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Themes\DarkTheme.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\DeployProgressWindow.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\DeployProgressWindow.baml

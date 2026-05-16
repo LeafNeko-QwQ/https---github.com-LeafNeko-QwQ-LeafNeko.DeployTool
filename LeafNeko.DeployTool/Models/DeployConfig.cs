@@ -8,6 +8,7 @@ namespace LeafNeko.DeployTool.Models;
 public class DeployConfig
 {
     public bool LicenseAccepted { get; set; }
+    public bool DarkMode { get; set; }
     public string? LastRunTime { get; set; }
 
     public static DeployConfig Load()

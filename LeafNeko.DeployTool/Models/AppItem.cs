@@ -17,5 +17,6 @@ public class AppItem
     public bool IsSelected { get; set; }
     public AppStatus Status { get; set; } = AppStatus.Pending;
     public string? LocalVersion { get; set; }
+    public bool IsOutdated { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 }

@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using LeafNeko.DeployTool.Models;
 using LeafNeko.DeployTool.Services;
@@ -9,6 +11,10 @@ namespace LeafNeko.DeployTool.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
+    public static string VersionText { get; } =
+        Assembly.GetExecutingAssembly().GetName().Version is Version v
+            ? $"v{v.Major}.{v.Minor}.{v.Build}"
+            : "v1.0.10";
     private string _selectedCategory = "全部";
     private string _progressStatus = "就绪，等待操作";
     private double _overallProgress;
@@ -26,11 +32,33 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly RepoService _repo = new();
     private readonly ManifestService _manifest = new();
     private readonly VersionService _version = new();
+    private readonly SystemInfoService _systemInfo = new();
+    private readonly HistoryService _history = new();
 
     public ObservableCollection<AppItemViewModel> AllApps { get; } = new();
     public ObservableCollection<AppItemViewModel> FilteredApps { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
     public ObservableCollection<DeployTask> ActiveTasks { get; } = new();
+
+    public SystemInfoService SystemInfo => _systemInfo;
+
+    public HistoryService History => _history;
+
+    public void RefreshHistory()
+    {
+        OnPropertyChanged(nameof(RecentHistoryText));
+    }
+
+    public string RecentHistoryText
+    {
+        get
+        {
+            var recent = _history.Load();
+            if (recent.Count == 0) return "暂无部署记录";
+            var last5 = recent.TakeLast(5).Reverse();
+            return string.Join("\n", last5.Select(e => e.DisplayText));
+        }
+    }
 
     public string ChangelogText { get; } = @"v1.0.0 — 2026-05-16
 
@@ -63,6 +91,14 @@ public class MainViewModel : INotifyPropertyChanged
 • .NET 9 WPF 单文件自包含 EXE
 • MVVM 架构 + 桌面统一临时目录
 • 原子化配置写入 + Trace 操作日志";
+
+    private string _searchText = "";
+
+    public string SearchText
+    {
+        get => _searchText;
+        set { _searchText = value; ApplyFilter(); OnPropertyChanged(); }
+    }
 
     public string SelectedCategory
     {
@@ -178,17 +214,16 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             }
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (Exception ex)
         {
-            // fallback to demo
+            Trace.WriteLine($"[MainViewModel] 清单加载失败: {ex.Message}");
         }
-        catch { }
 
-        ProgressStatus = "仓库未配置清单，加载演示数据...";
-        OverallProgress = 80;
-        LoadDemoData();
+        AllApps.Clear();
+        Categories.Clear();
+        Categories.Add("全部");
         OverallProgress = 100;
-        ProgressStatus = $"已加载 {AllApps.Count} 个演示软件（云端仓库尚未配置清单文件）";
+        ProgressStatus = "暂无可用软件，请检查仓库配置";
     }
 
     public void CheckVersions()
@@ -205,6 +240,8 @@ public class MainViewModel : INotifyPropertyChanged
             if (info != null && info.IsInstalled)
             {
                 app.Status = AppStatus.Completed;
+                app.LocalVersion = info.Version;
+                app.IsOutdated = VersionService.IsOutdated(app.LocalVersion, app.Url);
             }
             checked_++;
             OverallProgress = (double)checked_ / total * 100;
@@ -244,29 +281,18 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public void LoadDemoData()
-    {
-        var demoApps = new List<AppItem>
-        {
-            new() { Name = "7-Zip", Url = "https://www.7-zip.org/a/7z2408-x64.exe", Category = "压缩工具" },
-            new() { Name = "Google Chrome", Url = "https://dl.google.com/chrome/install/standalone/ChromeSetup64.exe", Category = "浏览器" },
-            new() { Name = "Firefox", Url = "https://download.mozilla.org/?product=firefox-latest&os=win64&lang=zh-CN", Category = "浏览器" },
-            new() { Name = "VLC 媒体播放器", Url = "https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe", Category = "影音播放" },
-            new() { Name = "PotPlayer", Url = "https://t1.daumcdn.net/potplayer/PotPlayer/Version/Latest/PotPlayerSetup64.exe", Category = "影音播放" },
-            new() { Name = "Notepad++", Url = "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.7/npp.8.7.7.Installer.x64.exe", Category = "办公" },
-            new() { Name = "WPS Office", Url = "https://official-package.wpscdn.cn/wps/download/WPS_Setup.exe", Category = "办公" },
-            new() { Name = "Bandizip", Url = "https://www.bandisoft.com/bandizip/dl.php?web", Category = "压缩工具" },
-        };
-
-        LoadFromList(demoApps);
-    }
 
     public void ApplyFilter()
     {
         FilteredApps.Clear();
         foreach (var app in AllApps)
         {
-            if (_selectedCategory == "全部" || app.Category == _selectedCategory)
+            var catMatch = _selectedCategory == "全部" || app.Category == _selectedCategory;
+            var searchMatch = string.IsNullOrEmpty(_searchText)
+                || app.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || app.Category.Contains(_searchText, StringComparison.OrdinalIgnoreCase);
+
+            if (catMatch && searchMatch)
                 FilteredApps.Add(app);
         }
     }

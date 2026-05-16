@@ -25,3 +25,9 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\refint\LeafNeko.Dep
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool.pdb
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool.genruntimeconfig.cache
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\ref\LeafNeko.DeployTool.dll
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDeployWindow.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDeployWindow.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\DeployProgressWindow.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\DeployProgressWindow.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool.sourcelink.json
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Themes\DarkTheme.baml

@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:LeafNeko.DeployTool.Controls"
+        xmlns:vm="clr-namespace:LeafNeko.DeployTool.ViewModels"
         Title="LeafNeko 装机助手"
         Icon="/Resources/logo.png"
         Width="1100" Height="750"
@@ -22,12 +23,19 @@
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="⚙" FontSize="22" VerticalAlignment="Center"/>
-                    <TextBlock Text="LeafNeko 装机助手"
-                               FontSize="20" FontWeight="Bold"
+                    <TextBlock FontSize="20" FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrush}"
-                               Margin="8,0,0,0" VerticalAlignment="Center"/>
+                               Margin="8,0,0,0" VerticalAlignment="Center">
+                        <Run Text="LeafNeko 装机助手"/>
+                        <Run Text="{x:Static vm:MainViewModel.VersionText}"
+                             FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </TextBlock>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="🌙" FontSize="14"
+                               Cursor="Hand" Margin="0,0,12,0"
+                               MouseLeftButtonDown="DarkModeToggle_Click"
+                               ToolTip="切换深色/浅色模式"/>
                     <TextBlock Text="B站" FontSize="13"
                                Foreground="{StaticResource PrimaryBrush}"
                                Cursor="Hand" Margin="0,0,16,0"
@@ -42,27 +50,49 @@
 
         <!-- ========== 分类标签栏 ========== -->
         <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
-            <ItemsControl x:Name="CategoryTabs" Margin="24,0" VerticalAlignment="Center"
-                          ItemsSource="{Binding Categories}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Padding="16,6" CornerRadius="16" Margin="0,0,8,0"
-                                Cursor="Hand"
-                                Background="Transparent"
-                                MouseLeftButtonDown="CategoryTab_Click">
-                            <TextBlock Text="{Binding}"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="#9E9E9E"
-                                       Name="tabText"/>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <Grid Margin="24,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ItemsControl x:Name="CategoryTabs" VerticalAlignment="Center"
+                              ItemsSource="{Binding Categories}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="16,6" CornerRadius="16" Margin="0,0,8,0"
+                                    Cursor="Hand"
+                                    Background="Transparent"
+                                    MouseLeftButtonDown="CategoryTab_Click">
+                                <TextBlock Text="{Binding}"
+                                           FontSize="13" FontWeight="SemiBold"
+                                           Foreground="#9E9E9E"
+                                           Name="tabText"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 搜索框 -->
+                <Border Grid.Column="1" CornerRadius="14" Background="#F5F5F5"
+                        BorderBrush="Transparent" BorderThickness="1"
+                        Padding="10,4" VerticalAlignment="Center" MinWidth="180">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="12" Foreground="#3D3D3D"
+                                 Background="Transparent" BorderThickness="0"
+                                 VerticalAlignment="Center"
+                                 Width="150"
+                                 Style="{StaticResource {x:Type TextBox}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
         <!-- ========== 主内容区 ========== -->
@@ -121,6 +151,49 @@
             <!-- 右侧：功能卡片区 -->
             <StackPanel Grid.Column="1" Margin="12,0,24,0">
 
+                <!-- 系统信息卡片 -->
+                <Border Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="🖥" FontSize="20" VerticalAlignment="Center"/>
+                            <TextBlock Text="系统信息" FontSize="14" FontWeight="SemiBold"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                            <Run Text="OS: "/><Run Text="{Binding SystemInfo.OsInfo}"/>
+                        </TextBlock>
+                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                            <Run Text="CPU: "/><Run Text="{Binding SystemInfo.CpuInfo}"/>
+                        </TextBlock>
+                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                            <Run Text="RAM: "/><Run Text="{Binding SystemInfo.RamInfo}"/>
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontSize="11" Foreground="#9E9E9E">
+                                <Run Text="C盘: "/><Run Text="{Binding SystemInfo.DiskInfo}"/>
+                            </TextBlock>
+                            <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="#EF5350"
+                                       Visibility="{Binding SystemInfo.DiskLow, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 部署历史卡片 -->
+                <Border Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="📝" FontSize="20" VerticalAlignment="Center"/>
+                            <TextBlock Text="部署历史" FontSize="14" FontWeight="SemiBold"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding RecentHistoryText}"
+                                   FontSize="11" Foreground="#9E9E9E"
+                                   LineHeight="18" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- 便携应用部署卡片 -->
                 <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
                         Effect="{StaticResource CardShadow}">
@@ -174,7 +247,7 @@
                                    FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                    Margin="0,8,0,0" TextWrapping="Wrap"/>
                         <Button x:Name="CheckVersionBtn"
-                                Content="检测版本"
+                                Content="🔄 检测更新"
                                 Style="{StaticResource SecondaryButton}"
                                 Margin="0,12,0,0"
                                 Click="CheckVersionBtn_Click"/>

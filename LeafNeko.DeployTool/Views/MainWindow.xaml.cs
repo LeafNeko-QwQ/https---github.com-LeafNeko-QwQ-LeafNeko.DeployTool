@@ -43,11 +43,83 @@ public partial class MainWindow : Window
     {
         PathHelper.EnsureAll();
         Trace.WriteLine("[MainWindow] 桌面目录已初始化: " + PathHelper.BaseDir);
+        _viewModel.SystemInfo.Refresh();
         await _viewModel.LoadAppsAsync();
         _viewModel.OverallProgress = 0;
+        _ = CheckSelfUpdateAsync();
+    }
+
+    private async Task CheckSelfUpdateAsync()
+    {
+        try
+        {
+            var localVersion = MainViewModel.VersionText.TrimStart('v');
+            var content = await _repo.DownloadTextAsync("latest-version.txt");
+            var remoteVersion = content.Trim();
+            Trace.WriteLine($"[SelfUpdate] 本地={localVersion}, 远端={remoteVersion}");
+
+            if (Version.TryParse(remoteVersion, out var rv) &&
+                Version.TryParse(localVersion, out var lv) &&
+                rv > lv)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var result = MessageBox.Show(
+                        $"发现新版本 v{remoteVersion}！\n当前版本: v{localVersion}\n\n是否下载更新？",
+                        "🆕 发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                    if (result == MessageBoxResult.Yes)
+                        _ = DownloadAndApplyUpdateAsync(remoteVersion);
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[SelfUpdate] 检查失败: {ex.Message}");
+        }
+    }
+
+    private async Task DownloadAndApplyUpdateAsync(string version)
+    {
+        try
+        {
+            var fileName = $"LeafNeko.DeployTool_{version}.exe";
+            var destPath = Path.Combine(PathHelper.BaseDir, fileName);
+            _viewModel.ProgressStatus = $"正在下载新版本 v{version}...";
+
+            await _repo.DownloadToFileAsync(
+                RepoService.BaseUrl + fileName,
+                destPath,
+                new Progress<double>(p => _viewModel.OverallProgress = p),
+                new Progress<string>(info => _viewModel.ProgressStatus = $"下载更新: {info}"));
+
+            _viewModel.OverallProgress = 100;
+            _viewModel.ProgressStatus = "下载完成";
+
+            var result = MessageBox.Show(
+                $"新版本已下载到:\n{destPath}\n\n是否打开文件位置？",
+                "✅ 下载完成", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (result == MessageBoxResult.Yes)
+                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{destPath}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"下载更新失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _viewModel.OverallProgress = 0;
+            _viewModel.ProgressStatus = "就绪，等待操作";
+        }
     }
 
     #region 顶部链接
+
+    private void DarkModeToggle_Click(object sender, MouseButtonEventArgs e)
+    {
+        App.ToggleTheme();
+        if (sender is TextBlock tb)
+            tb.Text = App.IsDarkMode ? "☀" : "🌙";
+    }
 
     private void CategoryTab_Click(object sender, MouseButtonEventArgs e)
     {
@@ -163,6 +235,8 @@ public partial class MainWindow : Window
                 links, deployTask, overwriteCallback,
                 new Progress<string>(info => deployTask.SpeedText = info));
 
+            _viewModel.History.Add("便携应用", "便携部署", true, $"部署 {links.Count} 个");
+            _viewModel.RefreshHistory();
             _viewModel.ProgressStatus = "便携应用部署完成！";
             MessageBox.Show($"便携应用部署完成！\n已处理 {links.Count} 个直链。", "完成",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -201,6 +275,8 @@ public partial class MainWindow : Window
                 new Progress<double>(p => task.OverallProgress = p),
                 new Progress<string>(info => task.SpeedText = info));
 
+            _viewModel.History.Add("快捷方式", "快捷方式部署", true);
+            _viewModel.RefreshHistory();
             _viewModel.ProgressStatus = "快捷方式部署完成！";
             MessageBox.Show("快捷方式已成功复制到桌面。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -274,6 +350,9 @@ public partial class MainWindow : Window
             await runner.RunAllAsync(workItems);
 
             var completed = runner.Tasks.Count(t => t.Status == DeployTaskStatus.Completed);
+            var failed = runner.Tasks.Count(t => t.Status == DeployTaskStatus.Error);
+            _viewModel.History.Add("安装版软件", "安装", failed == 0, $"成功 {completed}/{selected.Count}");
+            _viewModel.RefreshHistory();
             _viewModel.ProgressStatus = $"安装完成: {completed}/{selected.Count}";
             MessageBox.Show($"安装完成！\n成功: {completed}/{selected.Count}", "完成",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -299,22 +378,14 @@ public partial class MainWindow : Window
     private async void DeployAllBtn_Click(object sender, RoutedEventArgs e)
     {
         SetAllButtonsEnabled(false);
-        _viewModel.ActiveTasks.Clear();
         _viewModel.ProgressStatus = "正在并行部署全部...";
 
-        // 创建三个并行任务
-        var portableTask = new DeployTask { Name = "📦 便携应用", PhaseText = "等待中..." };
-        var shortcutTask = new DeployTask { Name = "🔗 快捷方式", PhaseText = "等待中..." };
-        var installTask = new DeployTask { Name = "⬇ 安装版软件", PhaseText = "等待中..." };
+        var progressWindow = new DeployProgressWindow { Owner = this };
 
-        _viewModel.ActiveTasks.Add(portableTask);
-        _viewModel.ActiveTasks.Add(shortcutTask);
-        _viewModel.ActiveTasks.Add(installTask);
-
-        var workItems = new List<(string, Func<DeployTask, Task>)>();
+        var workItems = new List<(string, Func<DeployTask, CancellationToken, Task>)>();
 
         // 便携应用
-        workItems.Add(("📦 便携应用", async (task) =>
+        workItems.Add(("📦 便携应用", async (task, ct) =>
         {
             try
             {
@@ -323,6 +394,7 @@ public partial class MainWindow : Window
                 if (links.Count == 0)
                 {
                     task.PhaseText = "无便携清单，跳过";
+                    task.OverallProgress = 100;
                     return;
                 }
                 await _deployService.DeployPortableFromLinksAsync(links, task,
@@ -338,7 +410,7 @@ public partial class MainWindow : Window
         }));
 
         // 快捷方式
-        workItems.Add(("🔗 快捷方式", async (task) =>
+        workItems.Add(("🔗 快捷方式", async (task, ct) =>
         {
             try
             {
@@ -355,17 +427,19 @@ public partial class MainWindow : Window
         }));
 
         // 安装版软件
-        workItems.Add(("⬇ 安装版软件", async (task) =>
+        workItems.Add(("⬇ 安装版软件", async (task, ct) =>
         {
             _viewModel.SelectAll();
             _viewModel.UpdateSelectionCount();
             Dispatcher.Invoke(() => UpdateSelectAllButton());
 
-            var selected = _viewModel.AllApps.Where(a => a.IsSelected).ToList();
+            var selected = _viewModel.AllApps.ToList();
             task.PhaseText = $"共 {selected.Count} 个";
 
             for (var i = 0; i < selected.Count; i++)
             {
+                ct.ThrowIfCancellationRequested();
+
                 var app = selected[i];
                 task.PhaseText = $"({i + 1}/{selected.Count}) {app.Name}";
                 try
@@ -391,13 +465,26 @@ public partial class MainWindow : Window
             task.PhaseText = $"安装版完成 ({selected.Count} 个)";
         }));
 
-        var runner = new TaskRunner(maxConcurrency: 3);
+        progressWindow.Show();
         try
         {
-            await runner.RunAllAsync(workItems);
-            _viewModel.ProgressStatus = "一键部署全部完成！";
-            MessageBox.Show("一键部署完成！\n便携应用 + 快捷方式 + 安装版软件已全部处理。", "完成",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            await progressWindow.RunAsync(workItems);
+
+            _viewModel.ActiveTasks.Clear();
+            foreach (var t in progressWindow.Tasks)
+                _viewModel.ActiveTasks.Add(t);
+
+            if (progressWindow.IsCancelled)
+                _viewModel.ProgressStatus = "部署已取消";
+            else
+            {
+                var allOk = progressWindow.Tasks.All(t => t.Status != DeployTaskStatus.Error);
+                _viewModel.History.Add("一键部署", "全部部署", allOk, $"任务数 {progressWindow.Tasks.Count}");
+                _viewModel.RefreshHistory();
+                _viewModel.ProgressStatus = "一键部署全部完成！";
+                MessageBox.Show("一键部署完成！\n便携应用 + 快捷方式 + 安装版软件已全部处理。", "完成",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
         catch (Exception ex)
         {
@@ -406,8 +493,8 @@ public partial class MainWindow : Window
         }
         finally
         {
+            progressWindow.Close();
             _viewModel.OverallProgress = 0;
-            _viewModel.ActiveTasks.Clear();
             _viewModel.UpdateSelectionCount();
             Dispatcher.Invoke(() => UpdateSelectAllButton());
             _viewModel.ProgressStatus = "就绪，等待操作";

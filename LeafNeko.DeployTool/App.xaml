@@ -14,6 +14,7 @@
             <local:InvertBoolConverter x:Key="InvertBoolConverter"/>
             <conv:ProgressToVisibilityConverter x:Key="ProgressToVisibilityConverter"/>
             <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

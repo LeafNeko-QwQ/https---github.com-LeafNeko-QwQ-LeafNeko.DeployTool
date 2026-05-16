@@ -16,7 +16,19 @@ public class AppItemViewModel : INotifyPropertyChanged
     public string Name => Model.Name;
     public string Url => Model.Url;
     public string Category => Model.Category;
-    public string? LocalVersion => Model.LocalVersion;
+    public string? LocalVersion
+    {
+        get => Model.LocalVersion;
+        set { Model.LocalVersion = value; OnPropertyChanged(); }
+    }
+
+    public bool IsOutdated
+    {
+        get => Model.IsOutdated;
+        set { Model.IsOutdated = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasUpdateIndicator)); }
+    }
+
+    public bool HasUpdateIndicator => IsOutdated && Status == AppStatus.Completed;
 
     public bool IsSelected
     {

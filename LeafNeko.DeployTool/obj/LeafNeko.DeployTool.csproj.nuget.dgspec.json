@@ -5,7 +5,7 @@
   },
   "projects": {
     "H:\\develop\\DNBZ\\LeafNeko.DeployTool\\LeafNeko.DeployTool.csproj": {
-      "version": "1.0.0",
+      "version": "1.0.10",
       "restore": {
         "projectUniqueName": "H:\\develop\\DNBZ\\LeafNeko.DeployTool\\LeafNeko.DeployTool.csproj",
         "projectName": "LeafNeko.DeployTool",
