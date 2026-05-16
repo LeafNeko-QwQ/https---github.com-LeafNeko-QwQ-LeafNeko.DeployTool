@@ -1,0 +1,5 @@
+#2026-05-16
+#log:初始版本，包含常用便携软件
+https://your-cdn.example.com/apps/7z.zip
+https://your-cdn.example.com/apps/chrome.zip
+https://your-cdn.example.com/apps/firefox.zip

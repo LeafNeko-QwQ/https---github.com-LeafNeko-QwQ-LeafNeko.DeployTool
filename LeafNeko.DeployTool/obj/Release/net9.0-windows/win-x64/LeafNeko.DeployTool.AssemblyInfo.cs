@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LeafNeko.DeployTool")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+89d2f907a566bbcb6bde2e9e98f56aded71e8777")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1781ad9fccc69da6c814d4e16884a41f7fa75941")]
 [assembly: System.Reflection.AssemblyProductAttribute("LeafNeko.DeployTool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LeafNeko.DeployTool")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

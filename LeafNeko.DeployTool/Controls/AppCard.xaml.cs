@@ -2,43 +2,60 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
-using System.Windows.Threading;
 using LeafNeko.DeployTool.ViewModels;
 
 namespace LeafNeko.DeployTool.Controls;
 
 public partial class AppCard : UserControl
 {
-    private const double MaxTiltAngle = 3.0;
-    private const double MaxTranslate = 2.0;
-    private const double HoverScale = 1.03;
-    private const double HoverShadowBlur = 12;
-    private const double HoverShadowDepth = 3;
-    private const int ReturnDurationMs = 300;
-    private const int ReturnFrameMs = 16;
-    private const int BounceDurationMs = 200;
+    // ── 视觉参数 ──
+    private const double MaxTiltAngle = 5.0;
+    private const double MaxTranslate = 3.5;
+    private const double HoverScale = 1.04;
+    private const double HoverShadowBlur = 14;
+    private const double HoverShadowDepth = 4;
+    private const double RestShadowBlur = 8;
+    private const double RestShadowDepth = 2;
 
-    // Pre-created transforms — modified in-place, never reallocated
+    // ── 跟随速度（越小越丝滑/延迟越长, 类似 CSS transition-duration）──
+    private const double FollowSpeed = 0.10;
+    private const double ReturnSpeed = 0.06;
+
+    // ── 预创建变换（原地修改，零分配）──
     private readonly ScaleTransform _scale;
     private readonly SkewTransform _skew;
     private readonly TranslateTransform _translate;
     private readonly TransformGroup _transformGroup;
 
-    // Regression animation state
-    private DispatcherTimer? _returnTimer;
-    private double _fromScaleX, _fromScaleY;
-    private double _fromSkewX, _fromSkewY;
-    private double _fromTransX, _fromTransY;
-    private double _fromShadowBlur, _fromShadowDepth, _fromShadowDir;
-    private double _fromGlowOpacity;
-    private int _returnElapsed;
-    private bool _isAnimatingBack;
+    // ── 目标值（鼠标位置决定）──
+    private double _targetScale = 1.0;
+    private double _targetSkewX, _targetSkewY;
+    private double _targetTransX, _targetTransY;
+    private double _targetShadowBlur = RestShadowBlur;
+    private double _targetShadowDepth = RestShadowDepth;
+    private double _targetShadowDir = 315;
+    private double _targetGlowOpacity;
 
-    // Bounce animation state
-    private DispatcherTimer? _bounceTimer;
-    private int _bounceElapsed;
-    private double _bounceBaseScale;
+    // ── 当前值（每帧向目标值插值, 类似 CSS transition 的中间态）──
+    private double _curScale = 1.0;
+    private double _curSkewX, _curSkewY;
+    private double _curTransX, _curTransY;
+    private double _curShadowBlur = RestShadowBlur;
+    private double _curShadowDepth = RestShadowDepth;
+    private double _curShadowDir = 315;
+    private double _curGlowOpacity;
+
+    // ── 鼠标状态 ──
+    private bool _isMouseOver;
+    private double _mouseOx, _mouseOy;
+
+    // ── 游戏循环 ──
+    private bool _isRunning;
+
+    // ── 弹跳隔离标志 ──
+    private bool _isBouncing;
 
     public AppCard()
     {
@@ -58,11 +75,144 @@ public partial class AppCard : UserControl
         MouseMove += OnMouseMove;
         MouseLeave += OnMouseLeave;
         PreviewMouseLeftButtonDown += OnCardClick;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
+
+    #region 入场动画
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        var entrance = new DoubleAnimation
+        {
+            From = 0.82,
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(480),
+            EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut }
+        };
+        ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, entrance);
+        ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, entrance);
+
+        StartGameLoop();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        StopGameLoop();
+    }
+
+    #endregion
+
+    #region 游戏循环（单帧循环驱动所有平滑过渡）
+
+    private void StartGameLoop()
+    {
+        if (_isRunning) return;
+        _isRunning = true;
+        CompositionTarget.Rendering += OnFrame;
+    }
+
+    private void StopGameLoop()
+    {
+        _isRunning = false;
+        CompositionTarget.Rendering -= OnFrame;
+    }
+
+    private void OnFrame(object? sender, EventArgs e)
+    {
+        if (_isBouncing) return;
+
+        var speed = _isMouseOver ? FollowSpeed : ReturnSpeed;
+
+        // 所有属性同时平滑过渡 — 类似 CSS transition: all
+        _curScale = Slerp(_curScale, _targetScale, speed);
+        _curSkewX = Slerp(_curSkewX, _targetSkewX, speed);
+        _curSkewY = Slerp(_curSkewY, _targetSkewY, speed);
+        _curTransX = Slerp(_curTransX, _targetTransX, speed);
+        _curTransY = Slerp(_curTransY, _targetTransY, speed);
+        _curShadowBlur = Slerp(_curShadowBlur, _targetShadowBlur, speed);
+        _curShadowDepth = Slerp(_curShadowDepth, _targetShadowDepth, speed);
+        _curShadowDir = Slerp(_curShadowDir, _targetShadowDir, speed);
+        _curGlowOpacity = Slerp(_curGlowOpacity, _targetGlowOpacity, speed * 0.7);
+
+        _scale.ScaleX = _curScale;
+        _scale.ScaleY = _curScale;
+        _skew.AngleX = _curSkewX;
+        _skew.AngleY = _curSkewY;
+        _translate.X = _curTransX;
+        _translate.Y = _curTransY;
+
+        if (MainBorder.Effect is DropShadowEffect shadow)
+        {
+            shadow.BlurRadius = _curShadowBlur;
+            shadow.ShadowDepth = _curShadowDepth;
+            shadow.Direction = _curShadowDir;
+        }
+
+        GlowOverlay.Opacity = _curGlowOpacity;
+
+        // 视差透视原点
+        var px = 0.5 + _mouseOx * 0.3;
+        var py = 0.5 + _mouseOy * 0.3;
+        MainBorder.RenderTransformOrigin = new Point(
+            Slerp(MainBorder.RenderTransformOrigin.X, px, speed),
+            Slerp(MainBorder.RenderTransformOrigin.Y, py, speed));
+
+        // 辉光随鼠标滑过
+        GlowOverlay.RenderTransformOrigin = new Point(
+            0.5 - _mouseOx * 0.4,
+            0.5 - _mouseOy * 0.4);
+    }
+
+    #endregion
+
+    #region 鼠标事件
+
+    private void OnMouseMove(object sender, MouseEventArgs e)
+    {
+        var pos = e.GetPosition(this);
+        var halfW = Math.Max(ActualWidth / 2, 1);
+        var halfH = Math.Max(ActualHeight / 2, 1);
+
+        _mouseOx = (pos.X - halfW) / halfW;
+        _mouseOy = (pos.Y - halfH) / halfH;
+
+        _targetScale = HoverScale;
+        _targetSkewX = _mouseOx * MaxTiltAngle * 0.3;
+        _targetSkewY = -_mouseOy * MaxTiltAngle * 0.3;
+        _targetTransX = _mouseOx * MaxTranslate;
+        _targetTransY = _mouseOy * MaxTranslate;
+        _targetShadowBlur = HoverShadowBlur;
+        _targetShadowDepth = HoverShadowDepth;
+        _targetShadowDir = 225 + (_mouseOx - _mouseOy) * 55;
+        _targetGlowOpacity = 1;
+
+        _isMouseOver = true;
+    }
+
+    private void OnMouseLeave(object sender, MouseEventArgs e)
+    {
+        _targetScale = 1.0;
+        _targetSkewX = 0;
+        _targetSkewY = 0;
+        _targetTransX = 0;
+        _targetTransY = 0;
+        _targetShadowBlur = RestShadowBlur;
+        _targetShadowDepth = RestShadowDepth;
+        _targetShadowDir = 315;
+        _targetGlowOpacity = 0;
+        _mouseOx = 0;
+        _mouseOy = 0;
+
+        _isMouseOver = false;
+    }
+
+    #endregion
+
+    #region 点击 + 弹跳（WPF Storyboard 驱动，类似 CSS @keyframes spring）
 
     private void OnCardClick(object sender, MouseButtonEventArgs e)
     {
-        // 点击在 CheckBox 上则不处理（CheckBox 自己处理勾选）
         if (IsCheckBoxSource(e.OriginalSource as DependencyObject))
             return;
 
@@ -77,8 +227,7 @@ public partial class AppCard : UserControl
     {
         while (d != null)
         {
-            if (d is CheckBox)
-                return true;
+            if (d is CheckBox) return true;
             d = VisualTreeHelper.GetParent(d);
         }
         return false;
@@ -86,177 +235,44 @@ public partial class AppCard : UserControl
 
     private void StartBounce()
     {
-        _bounceTimer?.Stop();
-        _bounceElapsed = 0;
-        _bounceBaseScale = _scale.ScaleX;
+        if (_isBouncing) return;
+        _isBouncing = true;
 
-        _bounceTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(16),
-            DispatcherPriority.Normal,
-            OnBounceTick,
-            Dispatcher);
-        _bounceTimer.Start();
+        var bounce = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(420) };
+        // 0ms: 压入
+        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(0.88,
+            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        // 140ms: 过冲
+        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(1.07,
+            TimeSpan.FromMilliseconds(140), new KeySpline(0, 0, 0.5, 1)));
+        // 280ms: 回弹
+        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(0.97,
+            TimeSpan.FromMilliseconds(270), new KeySpline(0.5, 0, 1, 0.5)));
+        // 420ms: 静止
+        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(1.0,
+            TimeSpan.FromMilliseconds(420), new KeySpline(0.2, 0, 0.4, 1)));
+
+        bounce.Completed += (_, _) =>
+        {
+            _isBouncing = false;
+            _curScale = _targetScale;
+        };
+
+        _scale.BeginAnimation(ScaleTransform.ScaleXProperty, bounce);
+        _scale.BeginAnimation(ScaleTransform.ScaleYProperty, bounce);
     }
 
-    private void OnBounceTick(object? sender, EventArgs e)
+    #endregion
+
+    #region 工具
+
+    /// <summary>带阻尼收束的线性插值 — 当逼近目标时自动吸收微小抖动</summary>
+    private static double Slerp(double from, double to, double t)
     {
-        _bounceElapsed += 16;
-        var t = Math.Min(1.0, (double)_bounceElapsed / BounceDurationMs);
-
-        // Overshoot bounce: 1 → 0.92 → 1.02 → 1 (using sin-based bounce)
-        var scale = BounceEase(t);
-        _scale.ScaleX = scale;
-        _scale.ScaleY = scale;
-
-        if (t >= 1.0)
-        {
-            _bounceTimer?.Stop();
-            _bounceTimer = null;
-            _scale.ScaleX = _bounceBaseScale;
-            _scale.ScaleY = _bounceBaseScale;
-        }
+        var diff = to - from;
+        if (Math.Abs(diff) < 0.0005) return to;
+        return from + diff * Math.Clamp(t, 0, 1);
     }
 
-    private static double BounceEase(double t)
-    {
-        // Spring-like bounce: damped sine
-        if (t < 0.7)
-        {
-            var s = t / 0.7;
-            return 1 - 0.08 * Math.Sin(s * Math.PI * 1.5);
-        }
-        else
-        {
-            var s = (t - 0.7) / 0.3;
-            return 1 - 0.08 * Math.Sin((1 + s * 0.5) * Math.PI * 1.5) * (1 - s);
-        }
-    }
-
-    private void OnMouseMove(object sender, MouseEventArgs e)
-    {
-        var pos = e.GetPosition(this);
-        var halfW = ActualWidth / 2;
-        var halfH = ActualHeight / 2;
-
-        var offsetX = (pos.X - halfW) / halfW;
-        var offsetY = (pos.Y - halfH) / halfH;
-
-        var rotateX = -offsetY * MaxTiltAngle;
-        var rotateY = offsetX * MaxTiltAngle;
-        var translateX = offsetX * MaxTranslate;
-        var translateY = offsetY * MaxTranslate;
-
-        // Modify transforms in-place — zero allocations
-        if (!_isAnimatingBack)
-        {
-            _scale.ScaleX = HoverScale;
-            _scale.ScaleY = HoverScale;
-            _skew.AngleX = rotateY * 0.3;
-            _skew.AngleY = rotateX * 0.3;
-            _translate.X = translateX;
-            _translate.Y = translateY;
-        }
-
-        MainBorder.RenderTransformOrigin = new Point(0.5 + offsetX * 0.3, 0.5 + offsetY * 0.3);
-
-        if (MainBorder.Effect is DropShadowEffect shadow)
-        {
-            shadow.BlurRadius = HoverShadowBlur;
-            shadow.ShadowDepth = HoverShadowDepth;
-            shadow.Direction = 225 + (offsetX - offsetY) * 45;
-        }
-
-        GlowOverlay.RenderTransformOrigin = new Point(
-            0.5 - offsetX * 0.5,
-            0.5 - offsetY * 0.5
-        );
-        GlowOverlay.Opacity = 1;
-    }
-
-    private void OnMouseLeave(object sender, MouseEventArgs e)
-    {
-        StopReturnTimer();
-
-        // Snap current values
-        _fromScaleX = _scale.ScaleX;
-        _fromScaleY = _scale.ScaleY;
-        _fromSkewX = _skew.AngleX;
-        _fromSkewY = _skew.AngleY;
-        _fromTransX = _translate.X;
-        _fromTransY = _translate.Y;
-
-        if (MainBorder.Effect is DropShadowEffect shadow)
-        {
-            _fromShadowBlur = shadow.BlurRadius;
-            _fromShadowDepth = shadow.ShadowDepth;
-            _fromShadowDir = shadow.Direction;
-        }
-        else
-        {
-            _fromShadowBlur = 8;
-            _fromShadowDepth = 2;
-            _fromShadowDir = 315;
-        }
-
-        _fromGlowOpacity = GlowOverlay.Opacity;
-
-        MainBorder.RenderTransformOrigin = new Point(0.5, 0.5);
-        GlowOverlay.RenderTransformOrigin = new Point(0.5, 0.5);
-
-        _returnElapsed = 0;
-        _isAnimatingBack = true;
-
-        _returnTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(ReturnFrameMs),
-            DispatcherPriority.Normal,
-            OnReturnTick,
-            Dispatcher);
-        _returnTimer.Start();
-    }
-
-    private void OnReturnTick(object? sender, EventArgs e)
-    {
-        _returnElapsed += ReturnFrameMs;
-        var t = Math.Min(1.0, (double)_returnElapsed / ReturnDurationMs);
-        var eased = CubicEaseOut(t);
-
-        _scale.ScaleX = Lerp(_fromScaleX, 1, eased);
-        _scale.ScaleY = Lerp(_fromScaleY, 1, eased);
-        _skew.AngleX = Lerp(_fromSkewX, 0, eased);
-        _skew.AngleY = Lerp(_fromSkewY, 0, eased);
-        _translate.X = Lerp(_fromTransX, 0, eased);
-        _translate.Y = Lerp(_fromTransY, 0, eased);
-
-        if (MainBorder.Effect is DropShadowEffect shadow)
-        {
-            shadow.BlurRadius = Lerp(_fromShadowBlur, 8, eased);
-            shadow.ShadowDepth = Lerp(_fromShadowDepth, 2, eased);
-            shadow.Direction = Lerp(_fromShadowDir, 315, eased);
-        }
-
-        GlowOverlay.Opacity = Lerp(_fromGlowOpacity, 0, eased);
-
-        if (t >= 1.0)
-        {
-            StopReturnTimer();
-            _isAnimatingBack = false;
-        }
-    }
-
-    private void StopReturnTimer()
-    {
-        if (_returnTimer != null)
-        {
-            _returnTimer.Stop();
-            _returnTimer = null;
-        }
-    }
-
-    private static double Lerp(double from, double to, double t) => from + (to - from) * t;
-
-    private static double CubicEaseOut(double t)
-    {
-        var t1 = t - 1;
-        return t1 * t1 * t1 + 1;
-    }
+    #endregion
 }
