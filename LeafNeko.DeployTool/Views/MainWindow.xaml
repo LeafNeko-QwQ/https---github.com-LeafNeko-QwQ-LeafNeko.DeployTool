@@ -1,0 +1,284 @@
+<Window x:Class="LeafNeko.DeployTool.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:LeafNeko.DeployTool.Controls"
+        Title="LeafNeko 装机助手"
+        Width="1100" Height="750"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="48"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="64"/>
+        </Grid.RowDefinitions>
+
+        <!-- ========== 顶部品牌栏 ========== -->
+        <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="24,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="⚙" FontSize="22" VerticalAlignment="Center"/>
+                    <TextBlock Text="LeafNeko 装机助手"
+                               FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="B站" FontSize="13"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               Cursor="Hand" Margin="0,0,16,0"
+                               MouseLeftButtonDown="BilibiliLink_Click"/>
+                    <TextBlock Text="Gitee" FontSize="13"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               Cursor="Hand"
+                               MouseLeftButtonDown="GiteeLink_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ========== 分类标签栏 ========== -->
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+            <ItemsControl x:Name="CategoryTabs" Margin="24,0" VerticalAlignment="Center"
+                          ItemsSource="{Binding Categories}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="16,6" CornerRadius="16" Margin="0,0,8,0"
+                                Cursor="Hand"
+                                Background="Transparent"
+                                MouseLeftButtonDown="CategoryTab_Click">
+                            <TextBlock Text="{Binding}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="#9E9E9E"
+                                       Name="tabText"/>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- ========== 主内容区 ========== -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：软件卡片网格 -->
+            <Grid Grid.Column="0" Margin="24,0,12,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 加载进度条（仅在加载时显示） -->
+                <Border Grid.Row="0" Background="White" CornerRadius="8"
+                        Padding="12,10" Margin="0,0,0,8"
+                        Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="⏳" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding ProgressStatus}"
+                                       FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <ProgressBar Height="6"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding OverallProgress}"
+                                     Foreground="{StaticResource PrimaryBrush}"
+                                     Background="{StaticResource BorderLightBrush}"
+                                     BorderThickness="0"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding FilteredApps}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:AppCard DataContext="{Binding}" Margin="0,0,16,16"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- 右侧：功能卡片区 -->
+            <StackPanel Grid.Column="1" Margin="12,0,24,0">
+
+                <!-- 便携应用部署卡片 -->
+                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📦" FontSize="24" VerticalAlignment="Center"/>
+                            <TextBlock Text="便携应用部署" FontSize="15" FontWeight="SemiBold"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="从云端下载免安装应用，解压到 C 盘根目录"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        <Button x:Name="DeployPortableBtn"
+                                Content="执行部署"
+                                Style="{StaticResource PrimaryButton}"
+                                Margin="0,16,0,0"
+                                Click="DeployPortableBtn_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 快捷方式部署卡片 -->
+                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔗" FontSize="24" VerticalAlignment="Center"/>
+                            <TextBlock Text="快捷方式部署" FontSize="15" FontWeight="SemiBold"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="从云端下载快捷方式，自动复制到当前用户桌面"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        <Button x:Name="DeployShortcutsBtn"
+                                Content="执行部署"
+                                Style="{StaticResource PrimaryButton}"
+                                Margin="0,16,0,0"
+                                Click="DeployShortcutsBtn_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 版本检测卡片 -->
+                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔍" FontSize="24" VerticalAlignment="Center"/>
+                            <TextBlock Text="版本检测" FontSize="15" FontWeight="SemiBold"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="检测本地是否已安装清单中的软件"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        <Button x:Name="CheckVersionBtn"
+                                Content="检测版本"
+                                Style="{StaticResource SecondaryButton}"
+                                Margin="0,12,0,0"
+                                Click="CheckVersionBtn_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 进度显示区 -->
+                <Border Background="White" CornerRadius="12" Padding="20"
+                        Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <TextBlock Text="📊 进度显示"
+                                   FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                        <!-- 当前阶段 + 文件名 -->
+                        <TextBlock Text="{Binding PhaseText}"
+                                   FontSize="12" Foreground="{StaticResource PrimaryBrush}"
+                                   Margin="0,0,0,4" TextWrapping="Wrap"
+                                   Visibility="{Binding PhaseText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        <TextBlock Text="{Binding DownloadFileName}"
+                                   FontSize="11" Foreground="#9E9E9E"
+                                   Margin="0,0,0,8" TextWrapping="Wrap"
+                                   Visibility="{Binding DownloadFileName, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                        <!-- 总进度 -->
+                        <TextBlock Text="{Binding ProgressStatus}"
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,6" TextWrapping="Wrap"/>
+                        <ProgressBar Height="6"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding OverallProgress}"
+                                     Foreground="{StaticResource PrimaryBrush}"
+                                     Background="{StaticResource BorderLightBrush}"
+                                     BorderThickness="0"
+                                     Margin="0,0,0,12"/>
+
+                        <!-- 下载进度 -->
+                        <TextBlock Text="{Binding SpeedText}"
+                                   FontSize="11" Foreground="#9E9E9E"
+                                   Margin="0,0,0,2"
+                                   Visibility="{Binding SpeedText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        <ProgressBar Height="4"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding DownloadProgress}"
+                                     Foreground="#F8A5B2"
+                                     Background="{StaticResource BorderLightBrush}"
+                                     BorderThickness="0"
+                                     Margin="0,0,0,8"
+                                     Visibility="{Binding DownloadProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                        <!-- 解压进度 -->
+                        <ProgressBar Height="4"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding ExtractProgress}"
+                                     Foreground="#FFB6C1"
+                                     Background="{StaticResource BorderLightBrush}"
+                                     BorderThickness="0"
+                                     Margin="0,0,0,8"
+                                     Visibility="{Binding ExtractProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                        <!-- 复制进度 -->
+                        <ProgressBar Height="4"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding CopyProgress}"
+                                     Foreground="#FF80AB"
+                                     Background="{StaticResource BorderLightBrush}"
+                                     BorderThickness="0"
+                                     Margin="0,0,0,8"
+                                     Visibility="{Binding CopyProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                        <!-- 已用时间 / 预计剩余 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{Binding ElapsedText}"
+                                       FontSize="11" Foreground="#9E9E9E"
+                                       Margin="0,0,12,0"
+                                       Visibility="{Binding ElapsedText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                            <TextBlock Text="{Binding EtaText}"
+                                       FontSize="11" Foreground="#9E9E9E"
+                                       Visibility="{Binding EtaText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </Grid>
+
+        <!-- ========== 底部操作栏 ========== -->
+        <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="24,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="☑ 全选"
+                            Style="{StaticResource SecondaryButton}"
+                            Margin="0,0,12,0"
+                            Click="SelectAllBtn_Click"/>
+                    <TextBlock Text="{Binding SelectedCountText}"
+                               FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button x:Name="InstallSelectedBtn"
+                        Content="⬇ 一键安装已选"
+                        Style="{StaticResource PrimaryButton}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Click="InstallSelectedBtn_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

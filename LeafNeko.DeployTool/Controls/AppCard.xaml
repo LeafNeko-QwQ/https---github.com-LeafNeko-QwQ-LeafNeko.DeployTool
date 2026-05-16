@@ -1,0 +1,88 @@
+<UserControl x:Class="LeafNeko.DeployTool.Controls.AppCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="236" Height="180">
+
+    <UserControl.Resources>
+        <DropShadowEffect x:Key="CardShadow" Color="#1A000000"
+                          BlurRadius="8" ShadowDepth="2" Opacity="0.3" Direction="315"/>
+
+        <!-- 边角弧度渐变扩散画刷：从左上角辐射到全局 -->
+        <RadialGradientBrush x:Key="CornerGlowBrush"
+                             GradientOrigin="0,0" Center="0,0"
+                             RadiusX="1.5" RadiusY="1.5">
+            <GradientStop Color="#30F8A5B2" Offset="0"/>
+            <GradientStop Color="#15FFB6C1" Offset="0.4"/>
+            <GradientStop Color="#00FFFFFF" Offset="0.8"/>
+        </RadialGradientBrush>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- 缩放变换容器 -->
+        <Grid Name="ScaleContainer" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Grid.RenderTransform>
+
+            <!-- 主卡片 -->
+            <Border Name="MainBorder" Background="White" CornerRadius="12"
+                    Effect="{StaticResource CardShadow}"
+                    RenderTransformOrigin="0.5,0.5"
+                    Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="48"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 图标 -->
+                    <Border Grid.Row="0" Width="48" Height="48" CornerRadius="12"
+                            Background="#FFF5F7" HorizontalAlignment="Center">
+                        <TextBlock Text="📦" FontSize="24"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- 软件名 -->
+                    <TextBlock Grid.Row="1" Text="{Binding Name}"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="#3D3D3D"
+                               HorizontalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Margin="0,8,0,0"/>
+
+                    <!-- 分类标签 -->
+                    <Border Grid.Row="2" CornerRadius="10"
+                            Background="#FFF5F7" Padding="8,2"
+                            HorizontalAlignment="Center" Margin="0,6,0,0">
+                        <TextBlock Text="{Binding Category}"
+                                   FontSize="11" Foreground="#F8A5B2"/>
+                    </Border>
+
+                    <!-- 状态 + 勾选 -->
+                    <Grid Grid.Row="4" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}"/>
+                            <TextBlock Text="{Binding StatusText}"
+                                       FontSize="11" Foreground="#9E9E9E"
+                                       Margin="4,0,0,0"/>
+                        </StackPanel>
+                        <CheckBox IsChecked="{Binding IsSelected}"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  IsEnabled="{Binding IsProcessing, Converter={StaticResource InvertBoolConverter}}"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- 边角弧度渐变扩散叠加层 -->
+            <Border Name="GlowOverlay" CornerRadius="12"
+                    Background="{StaticResource CornerGlowBrush}"
+                    Opacity="0"
+                    IsHitTestVisible="False"/>
+        </Grid>
+    </Grid>
+</UserControl>
