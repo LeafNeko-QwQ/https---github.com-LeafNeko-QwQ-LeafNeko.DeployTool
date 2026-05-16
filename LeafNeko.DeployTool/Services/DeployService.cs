@@ -262,26 +262,29 @@ public class DeployService
     private async Task<List<string>> DiscoverNumberedZipsAsync(string baseName)
     {
         var names = new List<string>();
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var handler = new HttpClientHandler { AllowAutoRedirect = false };
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("LeafNeko.DeployTool/1.0");
 
+        // 先尝试无编号版本
         try
         {
             var url0 = RepoService.BaseUrl + baseName + ".zip";
-            var resp0 = await http.GetAsync(url0, HttpCompletionOption.ResponseHeadersRead);
-            if (resp0.IsSuccessStatusCode)
+            using var resp0 = await http.GetAsync(url0, HttpCompletionOption.ResponseHeadersRead);
+            if (FileExists(resp0))
                 names.Add(baseName + ".zip");
         }
         catch { }
 
+        // 扫描编号版本（最多 20 个分包）
         for (int i = 1; i <= 20; i++)
         {
             try
             {
                 var name = $"{baseName}{i}.zip";
                 var url = RepoService.BaseUrl + name;
-                var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                if (!resp.IsSuccessStatusCode)
+                using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                if (!FileExists(resp))
                     break;
                 names.Add(name);
             }
@@ -293,6 +296,10 @@ public class DeployService
 
         return names;
     }
+
+    // Gitee 对存在的 raw 文件返回 302，不存在返回 404。禁用自动重定向以快速判断。
+    private static bool FileExists(HttpResponseMessage resp) =>
+        resp.IsSuccessStatusCode || resp.StatusCode == System.Net.HttpStatusCode.Found;
 
     /// <summary>
     /// 从 URL 获取文件名（FileNameStar > FileName > 重定向 URI > 原始 URL > setup.exe）

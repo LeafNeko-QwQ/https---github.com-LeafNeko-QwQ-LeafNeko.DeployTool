@@ -22,6 +22,18 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
         Loaded += OnLoaded;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsAllSelected))
+            UpdateSelectAllButton();
+    }
+
+    private void UpdateSelectAllButton()
+    {
+        SelectAllBtn.Content = _viewModel.IsAllSelected ? "取消全选" : "☑ 全选";
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -62,7 +74,8 @@ public partial class MainWindow : Window
 
     private void SelectAllBtn_Click(object sender, RoutedEventArgs e)
     {
-        _viewModel.SelectAll();
+        _viewModel.ToggleSelectAll();
+        UpdateSelectAllButton();
     }
 
     private void CheckVersionBtn_Click(object sender, RoutedEventArgs e)
@@ -188,6 +201,99 @@ public partial class MainWindow : Window
             _viewModel.ProgressStatus = "就绪，等待操作";
             DeployShortcutsBtn.IsEnabled = true;
         }
+    }
+
+    private async void DeployAllBtn_Click(object sender, RoutedEventArgs e)
+    {
+        SetAllButtonsEnabled(false);
+        _viewModel.ResetProgressDetail();
+
+        try
+        {
+            // Step 1: 部署便携应用
+            _viewModel.PhaseText = "📦 一键部署 - 便携应用";
+            _viewModel.ProgressStatus = "正在部署便携应用...";
+            try
+            {
+                await _deployService.DeployPortableAppsAsync(
+                    new Progress<double>(p => _viewModel.OverallProgress = p / 3),
+                    folderName =>
+                    {
+                        var result = MessageBox.Show(
+                            $"文件夹 \"{folderName}\" 已存在于 C 盘根目录，是否覆盖？\n\n选择「是」覆盖已有文件，「否」跳过该文件夹。",
+                            "覆盖确认",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                        return Task.FromResult(result == MessageBoxResult.Yes);
+                    },
+                    new Progress<string>(SetSpeedInfo),
+                    new Progress<(int phase, double percent, string label)>(SetPhaseInfo));
+            }
+            catch (FileNotFoundException ex)
+            {
+                _viewModel.ProgressStatus = $"便携应用跳过: {ex.Message}";
+            }
+
+            _viewModel.ResetProgressDetail();
+
+            // Step 2: 部署快捷方式
+            _viewModel.PhaseText = "🔗 一键部署 - 快捷方式";
+            _viewModel.ProgressStatus = "正在部署快捷方式...";
+            try
+            {
+                await _deployService.DeployShortcutsAsync(
+                    new Progress<double>(p => _viewModel.OverallProgress = 33.3 + p / 3),
+                    new Progress<string>(SetSpeedInfo));
+            }
+            catch (FileNotFoundException ex)
+            {
+                _viewModel.ProgressStatus = $"快捷方式跳过: {ex.Message}";
+            }
+
+            _viewModel.ResetProgressDetail();
+
+            // Step 3: 安装全部软件
+            _viewModel.PhaseText = "⬇ 一键部署 - 安装版软件";
+            _viewModel.SelectAll();
+            _viewModel.UpdateSelectionCount();
+            UpdateSelectAllButton();
+
+            await _downloadService.InstallAppsAsync(
+                _viewModel.AllApps.ToList(),
+                new Progress<string>(status => _viewModel.ProgressStatus = status),
+                new Progress<double>(p => _viewModel.OverallProgress = 66.7 + p / 3),
+                new Progress<(int index, double progress)>(item =>
+                    _viewModel.AllApps[item.index].DownloadProgress = item.progress),
+                new Progress<string>(SetSpeedInfo),
+                new Progress<string>(path => _viewModel.DownloadFileName = $"下载到: {path}"));
+
+            _viewModel.OverallProgress = 100;
+            _viewModel.ProgressStatus = "一键部署全部完成！";
+            _viewModel.PhaseText = "✅ 全部完成";
+            MessageBox.Show("一键部署全部完成！\n便携应用 + 快捷方式 + 安装版软件已全部处理。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"一键部署出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _viewModel.OverallProgress = 0;
+            _viewModel.ResetProgressDetail();
+            _viewModel.ProgressStatus = "就绪，等待操作";
+            SetAllButtonsEnabled(true);
+        }
+    }
+
+    private void SetAllButtonsEnabled(bool enabled)
+    {
+        InstallSelectedBtn.IsEnabled = enabled;
+        DeployPortableBtn.IsEnabled = enabled;
+        DeployShortcutsBtn.IsEnabled = enabled;
+        CheckVersionBtn.IsEnabled = enabled;
+        DeployAllBtn.IsEnabled = enabled;
+        SelectAllBtn.IsEnabled = enabled;
     }
 
     private void SetSpeedInfo(string info)

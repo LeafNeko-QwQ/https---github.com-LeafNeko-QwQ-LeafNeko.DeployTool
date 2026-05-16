@@ -415,3 +415,4 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\Mai
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Controls\AppCard.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Controls\AppCard.g.cs
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\GeneratedInternalTypeHelper.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\LeafNeko.DeployTool.sourcelink.json

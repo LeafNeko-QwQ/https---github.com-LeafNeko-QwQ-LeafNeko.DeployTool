@@ -1,0 +1,2 @@
+H:\develop\DNBZ\publish\LeafNeko.DeployTool.pdb
+H:\develop\DNBZ\publish\LeafNeko.DeployTool.exe

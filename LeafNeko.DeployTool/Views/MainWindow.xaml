@@ -263,10 +263,16 @@
         <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="☑ 全选"
+                    <Button x:Name="SelectAllBtn"
+                            Content="☑ 全选"
                             Style="{StaticResource SecondaryButton}"
-                            Margin="0,0,12,0"
+                            Margin="0,0,8,0"
                             Click="SelectAllBtn_Click"/>
+                    <Button x:Name="DeployAllBtn"
+                            Content="🚀 一键部署全部"
+                            Style="{StaticResource PrimaryButton}"
+                            Margin="8,0,12,0"
+                            Click="DeployAllBtn_Click"/>
                     <TextBlock Text="{Binding SelectedCountText}"
                                FontSize="13"
                                Foreground="{StaticResource TextSecondaryBrush}"

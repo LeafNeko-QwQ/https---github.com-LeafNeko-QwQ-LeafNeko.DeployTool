@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
+using LeafNeko.DeployTool.ViewModels;
 
 namespace LeafNeko.DeployTool.Controls;
 
@@ -16,6 +17,7 @@ public partial class AppCard : UserControl
     private const double HoverShadowDepth = 3;
     private const int ReturnDurationMs = 300;
     private const int ReturnFrameMs = 16;
+    private const int BounceDurationMs = 200;
 
     // Pre-created transforms — modified in-place, never reallocated
     private readonly ScaleTransform _scale;
@@ -32,6 +34,11 @@ public partial class AppCard : UserControl
     private double _fromGlowOpacity;
     private int _returnElapsed;
     private bool _isAnimatingBack;
+
+    // Bounce animation state
+    private DispatcherTimer? _bounceTimer;
+    private int _bounceElapsed;
+    private double _bounceBaseScale;
 
     public AppCard()
     {
@@ -50,6 +57,79 @@ public partial class AppCard : UserControl
 
         MouseMove += OnMouseMove;
         MouseLeave += OnMouseLeave;
+        PreviewMouseLeftButtonDown += OnCardClick;
+    }
+
+    private void OnCardClick(object sender, MouseButtonEventArgs e)
+    {
+        // 点击在 CheckBox 上则不处理（CheckBox 自己处理勾选）
+        if (IsCheckBoxSource(e.OriginalSource as DependencyObject))
+            return;
+
+        if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
+        {
+            vm.IsSelected = !vm.IsSelected;
+            StartBounce();
+        }
+    }
+
+    private static bool IsCheckBoxSource(DependencyObject? d)
+    {
+        while (d != null)
+        {
+            if (d is CheckBox)
+                return true;
+            d = VisualTreeHelper.GetParent(d);
+        }
+        return false;
+    }
+
+    private void StartBounce()
+    {
+        _bounceTimer?.Stop();
+        _bounceElapsed = 0;
+        _bounceBaseScale = _scale.ScaleX;
+
+        _bounceTimer = new DispatcherTimer(
+            TimeSpan.FromMilliseconds(16),
+            DispatcherPriority.Normal,
+            OnBounceTick,
+            Dispatcher);
+        _bounceTimer.Start();
+    }
+
+    private void OnBounceTick(object? sender, EventArgs e)
+    {
+        _bounceElapsed += 16;
+        var t = Math.Min(1.0, (double)_bounceElapsed / BounceDurationMs);
+
+        // Overshoot bounce: 1 → 0.92 → 1.02 → 1 (using sin-based bounce)
+        var scale = BounceEase(t);
+        _scale.ScaleX = scale;
+        _scale.ScaleY = scale;
+
+        if (t >= 1.0)
+        {
+            _bounceTimer?.Stop();
+            _bounceTimer = null;
+            _scale.ScaleX = _bounceBaseScale;
+            _scale.ScaleY = _bounceBaseScale;
+        }
+    }
+
+    private static double BounceEase(double t)
+    {
+        // Spring-like bounce: damped sine
+        if (t < 0.7)
+        {
+            var s = t / 0.7;
+            return 1 - 0.08 * Math.Sin(s * Math.PI * 1.5);
+        }
+        else
+        {
+            var s = (t - 0.7) / 0.3;
+            return 1 - 0.08 * Math.Sin((1 + s * 0.5) * Math.PI * 1.5) * (1 - s);
+        }
     }
 
     private void OnMouseMove(object sender, MouseEventArgs e)

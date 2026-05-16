@@ -228,17 +228,36 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsAllSelected => FilteredApps.Count > 0 && FilteredApps.All(a => a.IsSelected);
+
     public void SelectAll()
     {
-        var allSelected = FilteredApps.All(a => a.IsSelected);
         foreach (var app in FilteredApps)
-            app.IsSelected = !allSelected;
+            app.IsSelected = true;
         UpdateSelectionCount();
+        OnPropertyChanged(nameof(IsAllSelected));
+    }
+
+    public void DeselectAll()
+    {
+        foreach (var app in FilteredApps)
+            app.IsSelected = false;
+        UpdateSelectionCount();
+        OnPropertyChanged(nameof(IsAllSelected));
+    }
+
+    public void ToggleSelectAll()
+    {
+        if (IsAllSelected)
+            DeselectAll();
+        else
+            SelectAll();
     }
 
     public void UpdateSelectionCount()
     {
         SelectedCount = AllApps.Count(a => a.IsSelected);
+        OnPropertyChanged(nameof(IsAllSelected));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
