@@ -74,30 +74,102 @@ public class RepoService
             {
                 return await action();
             }
-            catch (HttpRequestException ex) when (attempt < maxRetries &&
-                (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
-                 ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                 ex.StatusCode == System.Net.HttpStatusCode.BadGateway ||
-                 ex.StatusCode == null)) // 无状态码（网络错误）
+            catch (HttpRequestException ex) when (attempt < maxRetries && IsRetryable(ex))
             {
-                var delay = (int)Math.Pow(2, attempt);
-                Debug.WriteLine($"[RepoService] {fileName} HTTP错误重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
-                await Task.Delay(delay * 1000);
+                await DelayRetry(attempt, fileName, "HTTP错误");
             }
             catch (TaskCanceledException) when (attempt < maxRetries)
             {
-                var delay = (int)Math.Pow(2, attempt);
-                Debug.WriteLine($"[RepoService] {fileName} 超时重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
-                await Task.Delay(delay * 1000);
+                await DelayRetry(attempt, fileName, "超时");
             }
             catch (IOException) when (attempt < maxRetries)
             {
-                var delay = (int)Math.Pow(2, attempt);
-                Debug.WriteLine($"[RepoService] {fileName} 连接中断重试 {attempt + 1}/{maxRetries}，{delay}s 后重试...");
-                await Task.Delay(delay * 1000);
+                await DelayRetry(attempt, fileName, "连接中断");
             }
         }
-        return await action(); // Last attempt — let it throw
+        return await action();
+    }
+
+    private static async Task RetryAsync(Func<Task> action, string fileName, int maxRetries = 3)
+    {
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (HttpRequestException ex) when (attempt < maxRetries && IsRetryable(ex))
+            {
+                await DelayRetry(attempt, fileName, "HTTP错误");
+            }
+            catch (TaskCanceledException) when (attempt < maxRetries)
+            {
+                await DelayRetry(attempt, fileName, "超时");
+            }
+            catch (IOException) when (attempt < maxRetries)
+            {
+                await DelayRetry(attempt, fileName, "连接中断");
+            }
+        }
+        await action();
+    }
+
+    private static bool IsRetryable(HttpRequestException ex) =>
+        ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
+        ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
+        ex.StatusCode == System.Net.HttpStatusCode.BadGateway ||
+        ex.StatusCode == null;
+
+    private static async Task DelayRetry(int attempt, string fileName, string reason)
+    {
+        var delay = (int)Math.Pow(2, attempt);
+        Trace.WriteLine($"[RepoService] {fileName} {reason}重试 {attempt + 1}，{delay}s 后重试...");
+        await Task.Delay(delay * 1000);
+    }
+
+    /// <summary>
+    /// 从任意 URL 下载文件到指定路径，支持进度和速度报告，自带重试。
+    /// </summary>
+    public async Task DownloadToFileAsync(string url, string destPath,
+        IProgress<double>? progress = null,
+        IProgress<string>? speedCallback = null,
+        CancellationToken ct = default)
+    {
+        var dir = Path.GetDirectoryName(destPath);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        await RetryAsync(async () =>
+        {
+            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
+
+            var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+            using var stream = await response.Content.ReadAsStreamAsync(ct);
+
+            using var fs = File.Create(destPath);
+            var buffer = new byte[8192];
+            var totalRead = 0L;
+
+            var sw = Stopwatch.StartNew();
+            var lastReport = 0L;
+
+            int bytesRead;
+            while ((bytesRead = await stream.ReadAsync(buffer, ct)) > 0)
+            {
+                await fs.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
+                totalRead += bytesRead;
+                if (totalBytes > 0)
+                    progress?.Report((double)totalRead / totalBytes * 100);
+
+                if (speedCallback != null && sw.ElapsedMilliseconds - lastReport > 250)
+                {
+                    lastReport = sw.ElapsedMilliseconds;
+                    speedCallback.Report(FormatSpeedInfo(totalRead, totalBytes, sw.Elapsed));
+                }
+            }
+        }, destPath);
     }
 
     public static string FormatSpeedInfo(long bytesRead, long totalBytes, TimeSpan elapsed)

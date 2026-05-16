@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using LeafNeko.DeployTool.Helpers;
 
 namespace LeafNeko.DeployTool.Models;
 
@@ -9,31 +10,25 @@ public class DeployConfig
     public bool LicenseAccepted { get; set; }
     public string? LastRunTime { get; set; }
 
-    private static string ConfigDir =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LeafNeko-DeployTool");
-
-    private static string ConfigFile =>
-        Path.Combine(ConfigDir, "config.json");
-
     public static DeployConfig Load()
     {
         try
         {
-            if (File.Exists(ConfigFile))
+            if (File.Exists(PathHelper.ConfigFile))
             {
-                var json = File.ReadAllText(ConfigFile);
+                var json = File.ReadAllText(PathHelper.ConfigFile);
                 var config = JsonSerializer.Deserialize<DeployConfig>(json);
                 if (config != null)
                     return config;
             }
             else
             {
-                // 处理上次崩溃遗留的 .tmp 文件
-                var tmp = ConfigFile + ".tmp";
+                var tmp = PathHelper.ConfigFile + ".tmp";
                 if (File.Exists(tmp))
                 {
+                    Trace.WriteLine($"[DeployConfig] 检测到崩溃遗留 .tmp，正在恢复...");
                     var json = File.ReadAllText(tmp);
-                    File.Move(tmp, ConfigFile, overwrite: true);
+                    File.Move(tmp, PathHelper.ConfigFile, overwrite: true);
                     var config = JsonSerializer.Deserialize<DeployConfig>(json);
                     if (config != null)
                         return config;
@@ -42,7 +37,7 @@ public class DeployConfig
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[DeployConfig] Load failed: {ex.Message}");
+            Trace.WriteLine($"[DeployConfig] 加载失败: {ex.Message}");
         }
         return new DeployConfig();
     }
@@ -51,15 +46,16 @@ public class DeployConfig
     {
         try
         {
-            Directory.CreateDirectory(ConfigDir);
-            var tmp = ConfigFile + ".tmp";
+            PathHelper.EnsureAll();
+            var tmp = PathHelper.ConfigFile + ".tmp";
             var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(tmp, json);
-            File.Move(tmp, ConfigFile, overwrite: true);
+            File.Move(tmp, PathHelper.ConfigFile, overwrite: true);
+            Trace.WriteLine($"[DeployConfig] 配置已保存到: {PathHelper.ConfigFile}");
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[DeployConfig] Save failed: {ex.Message}");
+            Trace.WriteLine($"[DeployConfig] 保存失败: {ex.Message}");
         }
     }
 }

@@ -30,6 +30,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<AppItemViewModel> AllApps { get; } = new();
     public ObservableCollection<AppItemViewModel> FilteredApps { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
+    public ObservableCollection<DeployTask> ActiveTasks { get; } = new();
 
     public string SelectedCategory
     {

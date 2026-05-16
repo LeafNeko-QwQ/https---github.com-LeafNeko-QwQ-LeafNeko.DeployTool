@@ -180,80 +180,105 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 进度显示区 -->
+                <!-- 进度显示区 — 多任务动态列表 -->
                 <Border Background="White" CornerRadius="12" Padding="20"
                         Effect="{StaticResource CardShadow}">
-                    <StackPanel>
-                        <TextBlock Text="📊 进度显示"
-                                   FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                        <!-- 当前阶段 + 文件名 -->
-                        <TextBlock Text="{Binding PhaseText}"
-                                   FontSize="12" Foreground="{StaticResource PrimaryBrush}"
-                                   Margin="0,0,0,4" TextWrapping="Wrap"
-                                   Visibility="{Binding PhaseText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock Text="{Binding DownloadFileName}"
-                                   FontSize="11" Foreground="#9E9E9E"
-                                   Margin="0,0,0,8" TextWrapping="Wrap"
-                                   Visibility="{Binding DownloadFileName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="📊 进度显示"
+                                       FontSize="15" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ProgressStatus}"
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
 
-                        <!-- 总进度 -->
-                        <TextBlock Text="{Binding ProgressStatus}"
-                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
-                                   Margin="0,0,0,6" TextWrapping="Wrap"/>
-                        <ProgressBar Height="6"
+                        <!-- 总进度（一键部署时显示） -->
+                        <ProgressBar Grid.Row="0" Height="4"
                                      Minimum="0" Maximum="100"
                                      Value="{Binding OverallProgress}"
                                      Foreground="{StaticResource PrimaryBrush}"
                                      Background="{StaticResource BorderLightBrush}"
                                      BorderThickness="0"
-                                     Margin="0,0,0,12"/>
+                                     Margin="0,0,0,4"
+                                     Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
-                        <!-- 下载进度 -->
-                        <TextBlock Text="{Binding SpeedText}"
-                                   FontSize="11" Foreground="#9E9E9E"
-                                   Margin="0,0,0,2"
-                                   Visibility="{Binding SpeedText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <ProgressBar Height="4"
-                                     Minimum="0" Maximum="100"
-                                     Value="{Binding DownloadProgress}"
-                                     Foreground="#F8A5B2"
-                                     Background="{StaticResource BorderLightBrush}"
-                                     BorderThickness="0"
-                                     Margin="0,0,0,8"
-                                     Visibility="{Binding DownloadProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+                        <!-- 活跃任务列表 -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      MaxHeight="300">
+                            <ItemsControl ItemsSource="{Binding ActiveTasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="8" Background="#FEFEFE"
+                                                BorderBrush="#F0F0F0" BorderThickness="1"
+                                                Padding="10" Margin="0,0,0,6">
+                                            <StackPanel>
+                                                <!-- 任务名称 + 状态 -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="#3D3D3D"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxWidth="180"/>
+                                                    <TextBlock Text="{Binding StatusText}"
+                                                               FontSize="10" Foreground="{StaticResource PrimaryBrush}"
+                                                               Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
 
-                        <!-- 解压进度 -->
-                        <ProgressBar Height="4"
-                                     Minimum="0" Maximum="100"
-                                     Value="{Binding ExtractProgress}"
-                                     Foreground="#FFB6C1"
-                                     Background="{StaticResource BorderLightBrush}"
-                                     BorderThickness="0"
-                                     Margin="0,0,0,8"
-                                     Visibility="{Binding ExtractProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+                                                <!-- 阶段文字 -->
+                                                <TextBlock Text="{Binding PhaseText}"
+                                                           FontSize="11" Foreground="#9E9E9E"
+                                                           Margin="0,0,0,4"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding PhaseText, Converter={StaticResource StringToVisibilityConverter}}"/>
 
-                        <!-- 复制进度 -->
-                        <ProgressBar Height="4"
-                                     Minimum="0" Maximum="100"
-                                     Value="{Binding CopyProgress}"
-                                     Foreground="#FF80AB"
-                                     Background="{StaticResource BorderLightBrush}"
-                                     BorderThickness="0"
-                                     Margin="0,0,0,8"
-                                     Visibility="{Binding CopyProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+                                                <!-- 总进度 -->
+                                                <ProgressBar Height="4"
+                                                             Minimum="0" Maximum="100"
+                                                             Value="{Binding OverallProgress}"
+                                                             Foreground="{StaticResource PrimaryBrush}"
+                                                             Background="{StaticResource BorderLightBrush}"
+                                                             BorderThickness="0"
+                                                             Margin="0,0,0,4"
+                                                             Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
-                        <!-- 已用时间 / 预计剩余 -->
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <TextBlock Text="{Binding ElapsedText}"
-                                       FontSize="11" Foreground="#9E9E9E"
-                                       Margin="0,0,12,0"
-                                       Visibility="{Binding ElapsedText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                            <TextBlock Text="{Binding EtaText}"
-                                       FontSize="11" Foreground="#9E9E9E"
-                                       Visibility="{Binding EtaText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        </StackPanel>
-                    </StackPanel>
+                                                <!-- 下载进度 -->
+                                                <ProgressBar Height="3"
+                                                             Minimum="0" Maximum="100"
+                                                             Value="{Binding DownloadProgress}"
+                                                             Foreground="#F8A5B2"
+                                                             Background="{StaticResource BorderLightBrush}"
+                                                             BorderThickness="0"
+                                                             Margin="0,0,0,3"
+                                                             Visibility="{Binding DownloadProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                                                <!-- 解压进度 -->
+                                                <ProgressBar Height="3"
+                                                             Minimum="0" Maximum="100"
+                                                             Value="{Binding ExtractProgress}"
+                                                             Foreground="#FFB6C1"
+                                                             Background="{StaticResource BorderLightBrush}"
+                                                             BorderThickness="0"
+                                                             Margin="0,0,0,3"
+                                                             Visibility="{Binding ExtractProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                                                <!-- 速度 -->
+                                                <TextBlock Text="{Binding SpeedText}"
+                                                           FontSize="10" Foreground="#9E9E9E"
+                                                           Margin="0,2,0,0"
+                                                           Visibility="{Binding SpeedText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
 
             </StackPanel>

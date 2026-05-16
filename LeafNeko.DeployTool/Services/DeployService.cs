@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
+using LeafNeko.DeployTool.Helpers;
 
 namespace LeafNeko.DeployTool.Services;
 
@@ -16,92 +17,116 @@ public class DeployService
     }
 
     /// <summary>
-    /// 部署所有编号 portable-apps*.zip（支持 portable-apps, portable-apps1, portable-apps2...）
-    /// overwriteCallback: 返回 true 表示覆盖，false 表示跳过
-    /// phaseCallback: 报告当前阶段 (phase, percent) — phase: 0=下载 1=解压 2=复制
+    /// 解析 portable-apps.txt。返回 (日期, 更新日志, 直链列表)。
+    /// 格式: #YYYY-MM-DD / #log:内容 / 其余行为直链 URL
     /// </summary>
-    public async Task DeployPortableAppsAsync(
-        IProgress<double>? progress = null,
-        Func<string, Task<bool>>? overwriteCallback = null,
-        IProgress<string>? speedCallback = null,
-        IProgress<(int phase, double percent, string label)>? phaseCallback = null)
+    public static (string date, string log, List<string> links) ParsePortableManifest(string content)
     {
-        var zipNames = await DiscoverNumberedZipsAsync("portable-apps");
-        if (zipNames.Count == 0)
-            throw new FileNotFoundException("云仓库中未找到任何 portable-apps*.zip，请确认文件已上传。");
+        var date = "";
+        var log = "";
+        var links = new List<string>();
 
-        var baseTemp = Path.Combine(Path.GetTempPath(), "LeafNeko-DeployTool", "PortableExtract");
-        Directory.CreateDirectory(baseTemp);
-
-        for (var i = 0; i < zipNames.Count; i++)
+        foreach (var raw in content.Split('\n'))
         {
-            var zipName = zipNames[i];
-            var zipLabel = $"({i + 1}/{zipNames.Count}) {zipName}";
+            var line = raw.Trim();
+            if (string.IsNullOrEmpty(line))
+                continue;
+
+            if (line.StartsWith("#log:"))
+                log = line.Substring(5).Trim();
+            else if (line.StartsWith("#"))
+                date = line.TrimStart('#').Trim();
+            else
+                links.Add(line);
+        }
+
+        return (date, log, links);
+    }
+
+    /// <summary>
+    /// 从直链部署便携应用到 C:\。每个直链独立下载 ZIP → 解压到 C:\。
+    /// deployTask: 用于汇报进度到 UI。
+    /// overwriteCallback: 目标文件夹已存在时询问用户。
+    /// </summary>
+    public async Task DeployPortableFromLinksAsync(
+        List<string> links,
+        Models.DeployTask deployTask,
+        Func<string, Task<bool>>? overwriteCallback = null,
+        IProgress<string>? speedCallback = null)
+    {
+        PathHelper.EnsureAll();
+        deployTask.Status = Models.DeployTaskStatus.Running;
+
+        for (var i = 0; i < links.Count; i++)
+        {
+            var link = links[i];
+            var fileName = GetFileNameFromUrl(link);
+            deployTask.PhaseText = $"({i + 1}/{links.Count}) 下载: {fileName}";
 
             // 阶段 0: 下载
-            phaseCallback?.Report((0, 0, zipLabel));
-            speedCallback?.Report($"正在下载 {zipName}...");
-
-            var data = await _repo.DownloadBytesAsync(zipName,
+            var downloadPath = Path.Combine(PathHelper.DownloadsDir, fileName);
+            await _repo.DownloadToFileAsync(link, downloadPath,
                 new Progress<double>(p =>
                 {
-                    phaseCallback?.Report((0, p, zipLabel));
-                    progress?.Report((double)i / zipNames.Count * 100 + p / zipNames.Count * 0.5 * 100);
+                    deployTask.DownloadProgress = p;
+                    deployTask.OverallProgress = (double)i / links.Count * 100 + p / links.Count * 50;
                 }),
                 speedCallback);
 
-            var tempZip = Path.Combine(baseTemp, zipName);
-            await File.WriteAllBytesAsync(tempZip, data);
-
             // 阶段 1: 解压
-            phaseCallback?.Report((1, 0, zipLabel));
-            var extractDir = Path.Combine(baseTemp, $"extract_{i}");
+            deployTask.PhaseText = $"({i + 1}/{links.Count}) 解压: {fileName}";
+            var extractDir = Path.Combine(PathHelper.ExtractDir, $"extract_{i}");
             Directory.CreateDirectory(extractDir);
-            await ExtractZipWithProgressAsync(tempZip, extractDir,
-                p => phaseCallback?.Report((1, p, zipLabel)));
+            await ExtractZipWithProgressAsync(downloadPath, extractDir,
+                p =>
+                {
+                    deployTask.ExtractProgress = p;
+                    deployTask.OverallProgress = (double)i / links.Count * 100 + 50 + p / links.Count * 50;
+                });
 
-            // 获取解压后的第一层文件夹
+            // 阶段 2: 复制到 C:\
+            deployTask.PhaseText = $"({i + 1}/{links.Count}) 复制: {fileName}";
             var topDirs = Directory.GetDirectories(extractDir);
             var topFiles = Directory.GetFiles(extractDir);
-
-            // 阶段 2: 复制
-            var totalItems = topDirs.Length + topFiles.Length;
-            var copiedItems = 0;
 
             foreach (var dir in topDirs)
             {
                 var dirName = Path.GetFileName(dir);
                 var destPath = Path.Combine(@"C:\", dirName);
 
-                bool shouldCopy = true;
                 if (Directory.Exists(destPath) && overwriteCallback != null)
-                    shouldCopy = await overwriteCallback(dirName);
-
-                if (shouldCopy)
-                    CopyDirectoryRecursive(dir, destPath);
-
-                copiedItems++;
-                phaseCallback?.Report((2, (double)copiedItems / totalItems * 100, dirName));
+                {
+                    var ok = await overwriteCallback(dirName);
+                    if (!ok) continue;
+                }
+                CopyDirectoryRecursive(dir, destPath);
             }
-
             foreach (var file in topFiles)
             {
-                var fileName = Path.GetFileName(file);
-                var destPath = Path.Combine(@"C:\", fileName);
-                File.Copy(file, destPath, true);
-
-                copiedItems++;
-                phaseCallback?.Report((2, (double)copiedItems / totalItems * 100, fileName));
+                var fileName2 = Path.GetFileName(file);
+                File.Copy(file, Path.Combine(@"C:\", fileName2), true);
             }
 
-            File.Delete(tempZip);
-            Directory.Delete(extractDir, true);
-
-            progress?.Report((double)(i + 1) / zipNames.Count * 100);
+            // 清理单个下载和临时文件
+            try { File.Delete(downloadPath); } catch { }
+            try { Directory.Delete(extractDir, true); } catch { }
         }
 
-        try { Directory.Delete(baseTemp, true); } catch { }
-        progress?.Report(100);
+        deployTask.OverallProgress = 100;
+        deployTask.Status = Models.DeployTaskStatus.Completed;
+    }
+
+    private static string GetFileNameFromUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var name = Path.GetFileName(uri.AbsolutePath);
+            if (!string.IsNullOrEmpty(name))
+                return SanitizeFileName(name);
+        }
+        catch { }
+        return $"download_{Guid.NewGuid():N}.zip";
     }
 
     /// <summary>
@@ -111,20 +136,20 @@ public class DeployService
         IProgress<string>? speedCallback = null)
     {
         progress?.Report(0);
+        PathHelper.EnsureAll();
 
         var data = await _repo.DownloadBytesAsync("shortcuts.zip",
             new Progress<double>(p => progress?.Report(p * 0.5)),
             speedCallback);
 
-        var tempZip = Path.Combine(Path.GetTempPath(), "LeafNeko-DeployTool", "shortcuts.zip");
-        Directory.CreateDirectory(Path.GetDirectoryName(tempZip)!);
+        var tempZip = Path.Combine(PathHelper.ShortcutsDir, "shortcuts.zip");
         await File.WriteAllBytesAsync(tempZip, data);
 
         var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         await ExtractZipWithProgressAsync(tempZip, desktopPath,
             p => progress?.Report(50 + p * 0.5));
 
-        File.Delete(tempZip);
+        try { File.Delete(tempZip); } catch { }
         progress?.Report(100);
     }
 
@@ -136,7 +161,8 @@ public class DeployService
         IProgress<string>? speedCallback = null,
         IProgress<string>? statusCallback = null)
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), "LeafNeko-DeployTool", SanitizeFileName(name));
+        PathHelper.EnsureAll();
+        var tempDir = Path.Combine(PathHelper.DownloadsDir, SanitizeFileName(name));
         Directory.CreateDirectory(tempDir);
 
         var fileName = await GetFileNameAsync(url);
@@ -249,58 +275,10 @@ public class DeployService
 
     public void CleanTemp()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), "LeafNeko-DeployTool");
-        try
-        {
-            if (Directory.Exists(tempDir))
-                Directory.Delete(tempDir, true);
-        }
-        catch { }
+        PathHelper.CleanTemp();
     }
 
     // ==================== 私有方法 ====================
-
-    private async Task<List<string>> DiscoverNumberedZipsAsync(string baseName)
-    {
-        var names = new List<string>();
-        var handler = new HttpClientHandler { AllowAutoRedirect = false };
-        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("LeafNeko.DeployTool/1.0");
-
-        // 先尝试无编号版本
-        try
-        {
-            var url0 = RepoService.BaseUrl + baseName + ".zip";
-            using var resp0 = await http.GetAsync(url0, HttpCompletionOption.ResponseHeadersRead);
-            if (FileExists(resp0))
-                names.Add(baseName + ".zip");
-        }
-        catch { }
-
-        // 扫描编号版本（最多 20 个分包）
-        for (int i = 1; i <= 20; i++)
-        {
-            try
-            {
-                var name = $"{baseName}{i}.zip";
-                var url = RepoService.BaseUrl + name;
-                using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                if (!FileExists(resp))
-                    break;
-                names.Add(name);
-            }
-            catch
-            {
-                break;
-            }
-        }
-
-        return names;
-    }
-
-    // Gitee 对存在的 raw 文件返回 302，不存在返回 404。禁用自动重定向以快速判断。
-    private static bool FileExists(HttpResponseMessage resp) =>
-        resp.IsSuccessStatusCode || resp.StatusCode == System.Net.HttpStatusCode.Found;
 
     /// <summary>
     /// 从 URL 获取文件名（FileNameStar > FileName > 重定向 URI > 原始 URL > setup.exe）
