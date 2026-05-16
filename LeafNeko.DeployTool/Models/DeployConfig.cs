@@ -9,11 +9,7 @@ public class DeployConfig
 {
     public bool LicenseAccepted { get; set; }
     public bool DarkMode { get; set; }
-    public bool AutoDarkMode { get; set; }
     public string? LastRunTime { get; set; }
-    public List<string> SearchHistory { get; set; } = new();
-    public Dictionary<string, bool> CategoryCollapsed { get; set; } = new();
-    public Dictionary<string, List<string>> CustomCategories { get; set; } = new();
 
     public static DeployConfig Load()
     {

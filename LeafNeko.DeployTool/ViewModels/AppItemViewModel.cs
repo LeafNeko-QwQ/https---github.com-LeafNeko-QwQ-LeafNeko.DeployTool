@@ -17,11 +17,7 @@ public class AppItemViewModel : INotifyPropertyChanged
 
     public string Name => Model.Name;
     public string Url => Model.Url;
-    public string Category
-    {
-        get => Model.Category;
-        set { Model.Category = value; OnPropertyChanged(); }
-    }
+    public string Category => Model.Category;
     public string? LocalVersion
     {
         get => Model.LocalVersion;

@@ -314,50 +314,6 @@ public class DeployService
         PathHelper.CleanTemp();
     }
 
-    /// <summary>
-    /// 清理 24 小时前的下载缓存（启动时后台执行）
-    /// </summary>
-    public static void CleanOldDownloads()
-    {
-        try
-        {
-            var downloadsDir = PathHelper.DownloadsDir;
-            if (!Directory.Exists(downloadsDir)) return;
-
-            var cutoff = DateTime.Now.AddHours(-24);
-            foreach (var file in Directory.GetFiles(downloadsDir))
-            {
-                try
-                {
-                    var info = new FileInfo(file);
-                    if (info.LastWriteTime < cutoff)
-                    {
-                        File.Delete(file);
-                        Trace.WriteLine($"[DeployService] 自动清理: {info.Name}");
-                    }
-                }
-                catch { }
-            }
-            foreach (var dir in Directory.GetDirectories(downloadsDir))
-            {
-                try
-                {
-                    var info = new DirectoryInfo(dir);
-                    if (info.LastWriteTime < cutoff)
-                    {
-                        Directory.Delete(dir, true);
-                        Trace.WriteLine($"[DeployService] 自动清理目录: {info.Name}");
-                    }
-                }
-                catch { }
-            }
-        }
-        catch (Exception ex)
-        {
-            Trace.WriteLine($"[DeployService] 自动清理异常: {ex.Message}");
-        }
-    }
-
     // ==================== 私有方法 ====================
 
     /// <summary>

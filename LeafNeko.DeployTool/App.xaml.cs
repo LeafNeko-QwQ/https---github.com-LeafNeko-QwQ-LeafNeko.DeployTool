@@ -31,43 +31,15 @@ public partial class App : Application
         Current.Resources.MergedDictionaries.Insert(0, newDict);
     }
 
-    private static bool IsSystemDarkMode()
-    {
-        try
-        {
-            var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-            var value = key?.GetValue("SystemUsesLightTheme");
-            if (value is int ival)
-                return ival == 0;
-        }
-        catch (Exception ex)
-        {
-            Trace.WriteLine($"[App] 读取系统主题失败: {ex.Message}");
-        }
-        return false;
-    }
-
     protected override void OnStartup(StartupEventArgs e)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var config = DeployConfig.Load();
 
-        bool useDark;
-        if (config.AutoDarkMode)
+        if (config.DarkMode)
         {
-            useDark = IsSystemDarkMode();
-            IsDarkMode = useDark;
-        }
-        else
-        {
-            useDark = config.DarkMode;
-            IsDarkMode = useDark;
-        }
-
-        if (useDark)
-        {
+            IsDarkMode = true;
             var darkDict = new ResourceDictionary { Source = new Uri("Themes/DarkTheme.xaml", UriKind.Relative) };
             Resources.MergedDictionaries.RemoveAt(0);
             Resources.MergedDictionaries.Insert(0, darkDict);
@@ -85,9 +57,6 @@ public partial class App : Application
         _trayIcon.ExitRequested += ShutdownApp;
 
         var licenseService = new LicenseService();
-
-        // 后台清理 24h+ 旧文件
-        Task.Run(() => DeployService.CleanOldDownloads());
 
         if (licenseService.IsAccepted())
         {
