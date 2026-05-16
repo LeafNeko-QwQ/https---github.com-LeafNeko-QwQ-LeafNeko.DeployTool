@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
 using LeafNeko.DeployTool.ViewModels;
 
 namespace LeafNeko.DeployTool.Controls;
@@ -13,16 +14,16 @@ namespace LeafNeko.DeployTool.Controls;
 public partial class AppCard : UserControl
 {
     // ── 视觉参数 ──
-    private const double MaxTiltAngle = 5.0;
-    private const double MaxTranslate = 3.5;
-    private const double HoverScale = 1.04;
-    private const double HoverShadowBlur = 14;
-    private const double HoverShadowDepth = 4;
+    private const double MaxTiltAngle = 8.0;
+    private const double MaxTranslate = 6.0;
+    private const double HoverScale = 1.05;
+    private const double HoverShadowBlur = 18;
+    private const double HoverShadowDepth = 6;
     private const double RestShadowBlur = 8;
     private const double RestShadowDepth = 2;
 
     // ── 跟随速度（越小越丝滑/延迟越长, 类似 CSS transition-duration）──
-    private const double FollowSpeed = 0.10;
+    private const double FollowSpeed = 0.14;
     private const double ReturnSpeed = 0.06;
 
     // ── 预创建变换（原地修改，零分配）──
@@ -61,6 +62,15 @@ public partial class AppCard : UserControl
 
     private static int _entranceCounter;
 
+    // ── 长按多选 ──
+    private static bool _isMultiSelectActive;
+    private static DispatcherTimer? _longPressTimer;
+    private static AppCard? _longPressOrigin;
+    private static Point _longPressStartPos;
+
+    // ── 重试事件（静态，MainWindow 订阅一次即可处理所有卡片）──
+    public static event Action<AppItemViewModel>? RetryRequested;
+
     public AppCard()
     {
         InitializeComponent();
@@ -79,6 +89,7 @@ public partial class AppCard : UserControl
         MouseMove += OnMouseMove;
         MouseLeave += OnMouseLeave;
         PreviewMouseLeftButtonDown += OnCardClick;
+        PreviewMouseLeftButtonUp += OnCardRelease;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         DataContextChanged += OnDataContextChanged;
@@ -232,8 +243,8 @@ public partial class AppCard : UserControl
         _mouseOy = (pos.Y - halfH) / halfH;
 
         _targetScale = HoverScale;
-        _targetSkewX = _mouseOx * MaxTiltAngle * 0.3;
-        _targetSkewY = -_mouseOy * MaxTiltAngle * 0.3;
+        _targetSkewX = _mouseOx * MaxTiltAngle * 0.5;
+        _targetSkewY = -_mouseOy * MaxTiltAngle * 0.5;
         _targetTransX = _mouseOx * MaxTranslate;
         _targetTransY = _mouseOy * MaxTranslate;
         _targetShadowBlur = HoverShadowBlur;
@@ -269,6 +280,63 @@ public partial class AppCard : UserControl
     {
         if (IsCheckBoxSource(e.OriginalSource as DependencyObject))
             return;
+
+        _longPressStartPos = e.GetPosition(null);
+
+        // 启动长按计时器
+        CancelLongPressTimer();
+        _longPressOrigin = this;
+        _longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+        _longPressTimer.Tick += OnLongPressTick;
+        _longPressTimer.Start();
+    }
+
+    private void OnCardRelease(object sender, MouseButtonEventArgs e)
+    {
+        if (IsCheckBoxSource(e.OriginalSource as DependencyObject))
+            return;
+
+        var wasLongPress = _isMultiSelectActive;
+        CancelLongPressTimer();
+
+        if (_isMultiSelectActive)
+        {
+            _isMultiSelectActive = false;
+            return;
+        }
+
+        // 正常点击
+        if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
+        {
+            vm.IsSelected = !vm.IsSelected;
+            StartBounce();
+        }
+    }
+
+    private static void OnLongPressTick(object? sender, EventArgs e)
+    {
+        CancelLongPressTimer();
+        _isMultiSelectActive = true;
+
+        if (_longPressOrigin is { } origin && origin.DataContext is AppItemViewModel vm && !vm.IsProcessing)
+        {
+            vm.IsSelected = !vm.IsSelected;
+            origin.StartBounce();
+        }
+    }
+
+    private static void CancelLongPressTimer()
+    {
+        if (_longPressTimer != null)
+        {
+            _longPressTimer.Stop();
+            _longPressTimer = null;
+        }
+    }
+
+    private void OnMouseEnter(object sender, MouseEventArgs e)
+    {
+        if (!_isMultiSelectActive || _longPressOrigin == this) return;
 
         if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
         {
@@ -314,6 +382,56 @@ public partial class AppCard : UserControl
 
         _scale.BeginAnimation(ScaleTransform.ScaleXProperty, bounce);
         _scale.BeginAnimation(ScaleTransform.ScaleYProperty, bounce);
+    }
+
+    #endregion
+
+    #region 重试按钮
+
+    private void RetryBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is AppItemViewModel vm)
+            RetryRequested?.Invoke(vm);
+    }
+
+    #endregion
+
+    #region 全选 3D 波浪动画
+
+    public void PlaySelectAllAnimation(int index, int total)
+    {
+        var delay = index * 40;
+
+        var skewAnim = new DoubleAnimationUsingKeyFrames
+        {
+            Duration = TimeSpan.FromMilliseconds(500),
+            BeginTime = TimeSpan.FromMilliseconds(delay)
+        };
+        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
+            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(6,
+            TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
+        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-3,
+            TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
+        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
+            TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+
+        var transAnim = new DoubleAnimationUsingKeyFrames
+        {
+            Duration = TimeSpan.FromMilliseconds(500),
+            BeginTime = TimeSpan.FromMilliseconds(delay)
+        };
+        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
+            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-4,
+            TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
+        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(2,
+            TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
+        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
+            TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+
+        _skew.BeginAnimation(SkewTransform.AngleXProperty, skewAnim);
+        _translate.BeginAnimation(TranslateTransform.YProperty, transAnim);
     }
 
     #endregion

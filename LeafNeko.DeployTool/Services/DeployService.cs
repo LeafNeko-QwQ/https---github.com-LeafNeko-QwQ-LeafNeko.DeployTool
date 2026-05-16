@@ -71,7 +71,7 @@ public class DeployService
                 new Progress<double>(p =>
                 {
                     deployTask.DownloadProgress = p;
-                    deployTask.OverallProgress = (double)i / links.Count * 100 + p / links.Count * 50;
+                    deployTask.OverallProgress = Math.Clamp((double)i / links.Count * 100 + p / links.Count * 50, 0, 100);
                 }),
                 speedCallback,
                 ct);
@@ -84,7 +84,7 @@ public class DeployService
                 p =>
                 {
                     deployTask.ExtractProgress = p;
-                    deployTask.OverallProgress = (double)i / links.Count * 100 + 50 + p / links.Count * 50;
+                    deployTask.OverallProgress = Math.Clamp((double)i / links.Count * 100 + 50 + p / links.Count * 50, 0, 100);
                 });
 
             // 阶段 2: 复制到 C:\
@@ -312,6 +312,50 @@ public class DeployService
     public void CleanTemp()
     {
         PathHelper.CleanTemp();
+    }
+
+    /// <summary>
+    /// 清理 24 小时前的下载缓存（启动时后台执行）
+    /// </summary>
+    public static void CleanOldDownloads()
+    {
+        try
+        {
+            var downloadsDir = PathHelper.DownloadsDir;
+            if (!Directory.Exists(downloadsDir)) return;
+
+            var cutoff = DateTime.Now.AddHours(-24);
+            foreach (var file in Directory.GetFiles(downloadsDir))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if (info.LastWriteTime < cutoff)
+                    {
+                        File.Delete(file);
+                        Trace.WriteLine($"[DeployService] 自动清理: {info.Name}");
+                    }
+                }
+                catch { }
+            }
+            foreach (var dir in Directory.GetDirectories(downloadsDir))
+            {
+                try
+                {
+                    var info = new DirectoryInfo(dir);
+                    if (info.LastWriteTime < cutoff)
+                    {
+                        Directory.Delete(dir, true);
+                        Trace.WriteLine($"[DeployService] 自动清理目录: {info.Name}");
+                    }
+                }
+                catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[DeployService] 自动清理异常: {ex.Message}");
+        }
     }
 
     // ==================== 私有方法 ====================

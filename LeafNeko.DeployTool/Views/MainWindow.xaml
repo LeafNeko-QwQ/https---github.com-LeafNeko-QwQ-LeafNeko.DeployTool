@@ -8,6 +8,8 @@
         Width="1100" Height="750"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Closing="Window_Closing"
         Background="{StaticResource BackgroundBrush}">
 
     <Grid>
@@ -15,6 +17,7 @@
             <RowDefinition Height="56"/>
             <RowDefinition Height="48"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="64"/>
         </Grid.RowDefinitions>
 
@@ -32,6 +35,11 @@
                     </TextBlock>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <CheckBox IsChecked="{Binding AutoDarkMode}"
+                              FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                              VerticalAlignment="Center" Margin="0,0,10,0"
+                              Content="跟随系统"
+                              ToolTip="自动跟随 Windows 系统主题"/>
                     <TextBlock Text="🌙" FontSize="14"
                                Cursor="Hand" Margin="0,0,12,0"
                                MouseLeftButtonDown="DarkModeToggle_Click"
@@ -65,31 +73,65 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="16,6" CornerRadius="16" Margin="0,0,8,0"
-                                    Cursor="Hand"
-                                    Background="Transparent"
-                                    MouseLeftButtonDown="CategoryTab_Click">
-                                <TextBlock Text="{Binding}"
-                                           FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           Name="tabText"/>
-                            </Border>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Padding="16,6" CornerRadius="16" Margin="0,0,2,0"
+                                        Cursor="Hand"
+                                        Background="Transparent"
+                                        MouseLeftButtonDown="CategoryTab_Click"
+                                        Tag="{Binding}"
+                                        ContextMenuOpening="CategoryTab_ContextMenuOpening">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="📝 重命名" Click="CategoryRename_Click"/>
+                                            <MenuItem Header="🗑 删除" Click="CategoryDelete_Click"/>
+                                            <Separator/>
+                                            <MenuItem Header="⬆ 上移" Click="CategoryMoveUp_Click"/>
+                                            <MenuItem Header="⬇ 下移" Click="CategoryMoveDown_Click"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel Orientation="Horizontal">
+                                        <!-- 折叠箭头 -->
+                                        <TextBlock Text="▼"
+                                                   FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                                   Name="collapseArrow"
+                                                   Tag="{Binding}"
+                                                   MouseLeftButtonDown="CategoryCollapseArrow_Click"/>
+                                        <TextBlock Text="{Binding}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Name="tabText"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- 搜索框 -->
+                <!-- 添加分类按钮 -->
+                <Button Content="＋" Width="30" Height="30"
+                        FontSize="14" FontWeight="Bold"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Background="Transparent" BorderThickness="0"
+                        Cursor="Hand" VerticalAlignment="Center"
+                        ToolTip="新建分类"
+                        Click="AddCategoryBtn_Click"/>
+
+                <!-- 搜索框（含历史下拉） -->
                 <Border Grid.Column="1" CornerRadius="14" Background="{StaticResource CardAccentBrush}"
                         BorderBrush="Transparent" BorderThickness="1"
-                        Padding="10,4" VerticalAlignment="Center" MinWidth="180">
+                        Padding="8,2" VerticalAlignment="Center" MinWidth="200">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
-                                 Background="Transparent" BorderThickness="0"
-                                 VerticalAlignment="Center"
-                                 Width="150"
-                                 Style="{StaticResource {x:Type TextBox}}"/>
+                        <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="4,0,6,0"/>
+                        <ComboBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                  ItemsSource="{Binding SearchHistory}"
+                                  IsEditable="True"
+                                  FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
+                                  Background="Transparent" BorderThickness="0"
+                                  VerticalAlignment="Center"
+                                  Width="160"
+                                  IsTextSearchEnabled="False"
+                                  KeyDown="SearchBox_KeyDown"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -135,7 +177,8 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               ClipToBounds="False">
-                    <ItemsControl ItemsSource="{Binding FilteredApps}"
+                    <ItemsControl x:Name="CardItemsControl"
+                                  ItemsSource="{Binding FilteredApps}"
                                   Padding="4">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -150,23 +193,6 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- 连接成功动画叠加层 -->
-                <Border x:Name="ConnectionSuccessOverlay" Panel.ZIndex="10"
-                        Opacity="0" Visibility="Collapsed" IsHitTestVisible="False"
-                        CornerRadius="16"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Width="260" Height="160">
-                    <Border.Background>
-                        <SolidColorBrush Color="#40000000" Opacity="0.6"/>
-                    </Border.Background>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="🔗" FontSize="48" HorizontalAlignment="Center"
-                                   Foreground="{StaticResource PrimaryBrush}" Opacity="0.9"/>
-                        <TextBlock Text="连接成功" FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{StaticResource PrimaryBrush}" Opacity="0.9"
-                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Border>
             </Grid>
 
             <!-- 右侧：功能卡片区 -->
@@ -199,22 +225,6 @@
                             <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="{StaticResource ErrorBrush}"
                                        Visibility="{Binding SystemInfo.DiskLow, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- 部署历史卡片 -->
-                <Border x:Name="HistoryCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12"
-                        Effect="{StaticResource CardShadow}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="📝" FontSize="20" VerticalAlignment="Center"/>
-                            <TextBlock Text="部署历史" FontSize="14" FontWeight="SemiBold"
-                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <TextBlock Text="{Binding RecentHistoryText}"
-                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
-                                   LineHeight="18" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
 
@@ -408,14 +418,71 @@
 
             </StackPanel>
             </ScrollViewer>
+
+            <!-- 一键部署确认遮罩 -->
+            <Border x:Name="ConfirmOverlay" Panel.ZIndex="20"
+                    Background="#80000000"
+                    Opacity="0" Visibility="Collapsed"
+                    MouseLeftButtonDown="ConfirmOverlayBg_Click">
+                <Border x:Name="ConfirmCard"
+                        CornerRadius="16"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1"
+                        Width="420"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Effect="{StaticResource CardShadow}">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                    </Border.RenderTransform>
+                    <StackPanel Margin="32">
+                        <TextBlock Text="🚀 一键部署全部"
+                                   FontSize="20" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="将依次执行以下操作："
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,12"/>
+                        <Border CornerRadius="8" Background="{StaticResource CardAccentBrush}" Padding="16" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="📦 便携应用 — 下载并部署到 C:\"
+                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="🔗 快捷方式 — 复制到桌面"
+                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="⬇ 全部安装版软件 — 逐个下载安装"
+                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock x:Name="ConfirmWarningText"
+                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,0,0,16"
+                                   TextAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="取消"
+                                    Width="110" Height="38"
+                                    FontSize="13"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Margin="0,0,16,0"
+                                    Click="ConfirmCancelBtn_Click"/>
+                            <Button Content="✅ 确认部署"
+                                    Width="130" Height="38"
+                                    FontSize="13"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Click="ConfirmStartBtn_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Border>
         </Grid>
 
+        <!-- ========== 状态栏 ========== -->
+        <controls:StatusBar x:Name="StatusBar" Grid.Row="3" Margin="24,4"/>
+
         <!-- ========== 底部操作栏 ========== -->
-        <Border Grid.Row="3" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="4" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="SelectAllBtn"
-                            Content="☐ 全选"
+                            Content="全选 ☐"
                             Style="{StaticResource SecondaryButton}"
                             Margin="0,0,8,0"
                             Click="SelectAllBtn_Click"/>
@@ -429,12 +496,20 @@
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
-                <Button x:Name="InstallSelectedBtn"
-                        Content="⬇ 一键安装已选"
-                        Style="{StaticResource PrimaryButton}"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Click="InstallSelectedBtn_Click"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="ExportBtn"
+                            Content="📄 导出报告"
+                            Style="{StaticResource SecondaryButton}"
+                            FontSize="12"
+                            Margin="0,0,10,0"
+                            Click="ExportBtn_Click"
+                            ToolTip="导出部署历史为 TXT/HTML"/>
+                    <Button x:Name="InstallSelectedBtn"
+                            Content="⬇ 一键安装已选"
+                            Style="{StaticResource PrimaryButton}"
+                            VerticalAlignment="Center"
+                            Click="InstallSelectedBtn_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

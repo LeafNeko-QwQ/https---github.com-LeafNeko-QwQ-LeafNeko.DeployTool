@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:LeafNeko.DeployTool"
              xmlns:conv="clr-namespace:LeafNeko.DeployTool.Converters"
-             ShutdownMode="OnLastWindowClose">
+             ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

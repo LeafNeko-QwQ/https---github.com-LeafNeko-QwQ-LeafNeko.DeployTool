@@ -24,10 +24,13 @@ finally {
     Pop-Location
 }
 
-# 2. 获取版本
+# 2. 重命名 EXE（含版本号）
 $exePath = Join-Path $publishDir "LeafNeko.DeployTool.exe"
 $version = (Get-Item $exePath).VersionInfo.FileVersion
-Write-Host "  已生成: v$version" -ForegroundColor Green
+$versionedExe = Join-Path $publishDir "LeafNeko.DeployTool_$version.exe"
+Rename-Item $exePath $versionedExe
+Write-Host "  已生成: v$version -> LeafNeko.DeployTool_$version.exe" -ForegroundColor Green
+$exePath = $versionedExe
 
 # 3. 更新远程版本文件（供自更新检测用）
 Write-Host "`n[2/4] 更新 latest-version.txt..." -ForegroundColor Yellow

@@ -10,12 +10,18 @@ public class AppItemViewModel : INotifyPropertyChanged
     private AppStatus _status;
     private string _errorMessage = string.Empty;
     private double _downloadProgress;
+    private string _speedText = "";
+    private string _etaText = "";
 
     public AppItem Model { get; }
 
     public string Name => Model.Name;
     public string Url => Model.Url;
-    public string Category => Model.Category;
+    public string Category
+    {
+        get => Model.Category;
+        set { Model.Category = value; OnPropertyChanged(); }
+    }
     public string? LocalVersion
     {
         get => Model.LocalVersion;
@@ -39,7 +45,15 @@ public class AppItemViewModel : INotifyPropertyChanged
     public AppStatus Status
     {
         get => _status;
-        set { _status = value; Model.Status = value; OnPropertyChanged(); OnPropertyChanged(nameof(StatusText)); OnPropertyChanged(nameof(IsProcessing)); }
+        set
+        {
+            _status = value;
+            Model.Status = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(IsProcessing));
+            OnPropertyChanged(nameof(IsRetryVisible));
+        }
     }
 
     public string ErrorMessage
@@ -53,6 +67,20 @@ public class AppItemViewModel : INotifyPropertyChanged
         get => _downloadProgress;
         set { _downloadProgress = value; OnPropertyChanged(); }
     }
+
+    public string SpeedText
+    {
+        get => _speedText;
+        set { _speedText = value; OnPropertyChanged(); }
+    }
+
+    public string EtaText
+    {
+        get => _etaText;
+        set { _etaText = value; OnPropertyChanged(); }
+    }
+
+    public bool IsRetryVisible => Status == AppStatus.Error;
 
     public string StatusText => Status switch
     {

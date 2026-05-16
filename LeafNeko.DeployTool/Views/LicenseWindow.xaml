@@ -8,7 +8,9 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent">
-    <Border Background="#FFF5F7" CornerRadius="12" BorderBrush="#F8A5B2" BorderThickness="1">
+    <Border Background="{StaticResource BackgroundBrush}" CornerRadius="12"
+            BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1"
+            MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
         <Border.Effect>
             <DropShadowEffect Color="#1A000000" BlurRadius="20" ShadowDepth="0"/>
         </Border.Effect>
@@ -22,15 +24,15 @@
             <!-- 标题 -->
             <TextBlock Grid.Row="0" Text="LeafNeko 装机助手"
                        FontSize="22" FontWeight="Bold"
-                       Foreground="#F8A5B2"
+                       Foreground="{StaticResource PrimaryBrush}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,16"/>
 
             <!-- 许可内容 -->
-            <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="16">
+            <Border Grid.Row="1" Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="LicenseTextBlock"
-                               FontSize="13" Foreground="#3D3D3D"
+                               FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"
                                LineHeight="22"
                                TextWrapping="Wrap"/>
                 </ScrollViewer>
@@ -49,14 +51,14 @@
                         Click="AgreeButton_Click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="#F8A5B2" CornerRadius="8"
+                            <Border Background="{StaticResource PrimaryBrush}" CornerRadius="8"
                                     Name="border">
                                 <ContentPresenter HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="#FF80AB"/>
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -67,21 +69,21 @@
                         Width="140" Height="40"
                         Margin="16,0,0,0"
                         FontSize="14" FontWeight="SemiBold"
-                        Foreground="#9E9E9E"
+                        Foreground="{StaticResource TextSecondaryBrush}"
                         Cursor="Hand"
                         Click="DisagreeButton_Click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border Background="Transparent" CornerRadius="8"
-                                    BorderBrush="#E0E0E0" BorderThickness="1"
+                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
                                     Name="border">
                                 <ContentPresenter HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="BorderBrush" Value="#F8A5B2"/>
-                                    <Setter TargetName="border" Property="Background" Value="#FFF0F2F5"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource CardAccentBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

@@ -72,7 +72,7 @@ public partial class DeployProgressWindow : Window, INotifyPropertyChanged
             Dispatcher.Invoke(() =>
             {
                 if (Tasks.Count > 0)
-                    OverallProgress = Tasks.Average(t => t.OverallProgress);
+                    OverallProgress = Math.Clamp(Tasks.Average(t => t.OverallProgress), 0, 100);
                 ElapsedText = $"已用 {sw.Elapsed.Minutes}:{sw.Elapsed.Seconds:D2}";
                 if (OverallProgress > 0 && OverallProgress < 100)
                 {

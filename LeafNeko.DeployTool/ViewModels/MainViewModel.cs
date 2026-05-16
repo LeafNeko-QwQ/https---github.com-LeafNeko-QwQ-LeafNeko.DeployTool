@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using LeafNeko.DeployTool.Helpers;
 using LeafNeko.DeployTool.Models;
 using LeafNeko.DeployTool.Services;
 
@@ -34,9 +35,10 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly VersionService _version = new();
     private readonly SystemInfoService _systemInfo = new();
     private readonly HistoryService _history = new();
+    private readonly DeployConfig _config = DeployConfig.Load();
 
     public ObservableCollection<AppItemViewModel> AllApps { get; } = new();
-    public ObservableCollection<AppItemViewModel> FilteredApps { get; } = new();
+    public ObservableRangeCollection<AppItemViewModel> FilteredApps { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
     public ObservableCollection<DeployTask> ActiveTasks { get; } = new();
 
@@ -68,9 +70,20 @@ public class MainViewModel : INotifyPropertyChanged
         set { _changelogText = value; OnPropertyChanged(); }
     }
 
-    private void InitChangelog()
+    public void InitChangelog()
     {
-        ChangelogText = @"v1.0.10 — 2026-05-17
+        ChangelogText = @"v1.0.12 — 2026-05-17
+• 键盘快捷键：Ctrl+A 全选 / Ctrl+F 搜索 / Enter 安装
+• 暗色模式跟随 Windows 系统主题
+• 关闭窗口最小化到系统托盘
+• 搜索历史下拉（最近 10 条）
+• 分类折叠 / 展开面板
+• 自定义分类：新建 / 重命名 / 删除 / 排序
+• 导出部署报告 TXT/HTML
+• 安装成功后 24 小时自动清理缓存
+• 系统声音反馈（成功 / 错误 / 警告）
+
+v1.0.10 — 2026-05-17
 • 暗色模式（一键切换，配置持久化）
 • 软件搜索过滤（按名称/分类实时筛选）
 • 独立部署进度窗口（多任务并行 + 取消 + ETA）
@@ -99,6 +112,94 @@ v1.0.0 — 2026-05-16
     {
         get => _searchText;
         set { _searchText = value; ApplyFilter(); OnPropertyChanged(); }
+    }
+
+    // ── 搜索历史 ──
+    public ObservableCollection<string> SearchHistory { get; } = new();
+
+    public void AddSearchToHistory(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term)) return;
+        SearchHistory.Remove(term);
+        SearchHistory.Insert(0, term);
+        while (SearchHistory.Count > 10)
+            SearchHistory.RemoveAt(SearchHistory.Count - 1);
+
+        _config.SearchHistory = SearchHistory.ToList();
+        _config.Save();
+    }
+
+    public void LoadSearchHistory()
+    {
+        SearchHistory.Clear();
+        foreach (var h in _config.SearchHistory)
+            SearchHistory.Add(h);
+    }
+
+    // ── 分类折叠 ──
+    public bool IsCategoryCollapsed(string category)
+    {
+        return _config.CategoryCollapsed.TryGetValue(category, out var c) && c;
+    }
+
+    public void ToggleCategoryCollapse(string category)
+    {
+        _config.CategoryCollapsed[category] = !IsCategoryCollapsed(category);
+        _config.Save();
+        ApplyFilter();
+    }
+
+    // ── 分类编辑 ──
+    public void AddCategory(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || Categories.Contains(name)) return;
+        Categories.Add(name);
+    }
+
+    public void RenameCategory(string oldName, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName) || oldName == newName || Categories.Contains(newName)) return;
+        var idx = Categories.IndexOf(oldName);
+        if (idx < 0) return;
+        Categories[idx] = newName;
+
+        foreach (var app in AllApps.Where(a => a.Category == oldName))
+            app.Category = newName;
+
+        if (_selectedCategory == oldName)
+            SelectedCategory = newName;
+    }
+
+    public void RemoveCategory(string name)
+    {
+        if (name == "全部") return;
+        Categories.Remove(name);
+
+        foreach (var app in AllApps.Where(a => a.Category == name))
+            app.Category = "其他";
+
+        if (_selectedCategory == name)
+            SelectedCategory = "全部";
+    }
+
+    public void MoveCategoryUp(string name)
+    {
+        var idx = Categories.IndexOf(name);
+        if (idx > 1) // 0 = "全部", 不可移动
+            Categories.Move(idx, idx - 1);
+    }
+
+    public void MoveCategoryDown(string name)
+    {
+        var idx = Categories.IndexOf(name);
+        if (idx > 0 && idx < Categories.Count - 1)
+            Categories.Move(idx, idx + 1);
+    }
+
+    public bool AutoDarkMode
+    {
+        get => _config.AutoDarkMode;
+        set { _config.AutoDarkMode = value; _config.Save(); OnPropertyChanged(); }
     }
 
     public string SelectedCategory
@@ -285,17 +386,27 @@ v1.0.0 — 2026-05-16
 
     public void ApplyFilter()
     {
-        FilteredApps.Clear();
+        var matches = new List<AppItemViewModel>();
         foreach (var app in AllApps)
         {
             var catMatch = _selectedCategory == "全部" || app.Category == _selectedCategory;
+
+            // 全部视图下，折叠的分类不显示
+            if (_selectedCategory == "全部" && IsCategoryCollapsed(app.Category))
+                catMatch = false;
+
+            // 但搜索时忽略折叠
+            if (!string.IsNullOrEmpty(_searchText))
+                catMatch = _selectedCategory == "全部" || app.Category == _selectedCategory;
+
             var searchMatch = string.IsNullOrEmpty(_searchText)
                 || app.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
                 || app.Category.Contains(_searchText, StringComparison.OrdinalIgnoreCase);
 
             if (catMatch && searchMatch)
-                FilteredApps.Add(app);
+                matches.Add(app);
         }
+        FilteredApps.ClearAndAddRange(matches);
     }
 
     public bool IsAllSelected => FilteredApps.Count > 0 && FilteredApps.All(a => a.IsSelected);

@@ -206,4 +206,28 @@ public class RepoService
         t.TotalHours >= 1 ? $"{t.Hours}h{t.Minutes}m" :
         t.TotalMinutes >= 1 ? $"{t.Minutes}m{t.Seconds}s" :
         $"{t.Seconds}s";
+
+    public double MeasuredSpeedBytesPerSec { get; private set; }
+
+    public async Task MeasureSpeedAsync()
+    {
+        try
+        {
+            var url = BaseUrl + "latest-version.txt";
+            var sw = Stopwatch.StartNew();
+            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            var data = await response.Content.ReadAsByteArrayAsync();
+            sw.Stop();
+
+            if (data.Length > 0 && sw.Elapsed.TotalSeconds > 0)
+                MeasuredSpeedBytesPerSec = data.Length / sw.Elapsed.TotalSeconds;
+
+            Trace.WriteLine($"[RepoService] 测速完成: {FormatBytesPerSec(MeasuredSpeedBytesPerSec)} ({data.Length} bytes in {sw.Elapsed.TotalSeconds:F2}s)");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[RepoService] 测速失败: {ex.Message}");
+        }
+    }
 }
