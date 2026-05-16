@@ -52,13 +52,15 @@ public class DeployService
         List<string> links,
         Models.DeployTask deployTask,
         Func<string, Task<bool>>? overwriteCallback = null,
-        IProgress<string>? speedCallback = null)
+        IProgress<string>? speedCallback = null,
+        CancellationToken ct = default)
     {
         PathHelper.EnsureAll();
         deployTask.Status = Models.DeployTaskStatus.Running;
 
         for (var i = 0; i < links.Count; i++)
         {
+            ct.ThrowIfCancellationRequested();
             var link = links[i];
             var fileName = GetFileNameFromUrl(link);
             deployTask.PhaseText = $"({i + 1}/{links.Count}) 下载: {fileName}";
@@ -71,7 +73,8 @@ public class DeployService
                     deployTask.DownloadProgress = p;
                     deployTask.OverallProgress = (double)i / links.Count * 100 + p / links.Count * 50;
                 }),
-                speedCallback);
+                speedCallback,
+                ct);
 
             // 阶段 1: 解压
             deployTask.PhaseText = $"({i + 1}/{links.Count}) 解压: {fileName}";
@@ -133,14 +136,17 @@ public class DeployService
     /// 快捷方式部署：下载 shortcuts.zip，解压到桌面（直接覆盖）
     /// </summary>
     public async Task DeployShortcutsAsync(IProgress<double>? progress = null,
-        IProgress<string>? speedCallback = null)
+        IProgress<string>? speedCallback = null,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         progress?.Report(0);
         PathHelper.EnsureAll();
 
         var data = await _repo.DownloadBytesAsync("shortcuts.zip",
             new Progress<double>(p => progress?.Report(p * 0.5)),
-            speedCallback);
+            speedCallback,
+            ct);
 
         var tempZip = Path.Combine(PathHelper.ShortcutsDir, "shortcuts.zip");
         await File.WriteAllBytesAsync(tempZip, data);
@@ -156,10 +162,11 @@ public class DeployService
     /// <summary>
     /// 下载安装包并运行安装程序
     /// </summary>
-    public async Task DownloadAndInstallAppAsync(string name, string url,
+    public async Task<string> DownloadAndInstallAppAsync(string name, string url,
         IProgress<double>? downloadProgress = null,
         IProgress<string>? speedCallback = null,
-        IProgress<string>? statusCallback = null)
+        IProgress<string>? statusCallback = null,
+        CancellationToken ct = default)
     {
         PathHelper.EnsureAll();
         var tempDir = Path.Combine(PathHelper.DownloadsDir, SanitizeFileName(name));
@@ -173,11 +180,11 @@ public class DeployService
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("LeafNeko.DeployTool/1.0");
 
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
         var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-        using var stream = await response.Content.ReadAsStreamAsync();
+        using var stream = await response.Content.ReadAsStreamAsync(ct);
 
         await using var fs = File.Create(filePath);
         var buffer = new byte[8192];
@@ -187,9 +194,9 @@ public class DeployService
         var lastReport = 0L;
 
         int bytesRead;
-        while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+        while ((bytesRead = await stream.ReadAsync(buffer, ct)) > 0)
         {
-            await fs.WriteAsync(buffer.AsMemory(0, bytesRead));
+            await fs.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
             totalRead += bytesRead;
             if (totalBytes > 0)
                 downloadProgress?.Report((double)totalRead / totalBytes * 100);
@@ -203,10 +210,13 @@ public class DeployService
 
         await fs.DisposeAsync();
 
-        // PE 文件验证：检查文件存在且以 MZ 开头
         ValidateExecutable(filePath);
 
-        RunInstaller(filePath);
+        var (success, message) = await RunInstallerAsync(filePath, statusCallback, ct);
+        if (!success)
+            throw new InvalidOperationException(message);
+
+        return message;
     }
 
     private static void ValidateExecutable(string filePath)
@@ -233,11 +243,12 @@ public class DeployService
                 $"文件大小: {info.Length} 字节");
     }
 
-    public void RunInstaller(string filePath)
+    public async Task<(bool success, string message)> RunInstallerAsync(string filePath,
+        IProgress<string>? statusCallback = null,
+        CancellationToken ct = default)
     {
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
 
-        // 无扩展名时尝试重命名为 .exe
         if (string.IsNullOrEmpty(ext))
         {
             var newPath = filePath + ".exe";
@@ -262,14 +273,39 @@ public class DeployService
             };
         }
 
+        var isPortable = filePath.Contains("portable", StringComparison.OrdinalIgnoreCase)
+            || filePath.Contains("便携", StringComparison.OrdinalIgnoreCase);
+
+        statusCallback?.Report(isPortable ? "正在启动..." : "正在安装...");
+
         try
         {
-            Process.Start(psi);
+            var sw = Stopwatch.StartNew();
+            using var process = Process.Start(psi);
+            if (process == null)
+            {
+                return (true, isPortable ? "启动成功" : "安装程序已启动，请按照安装向导完成操作");
+            }
+
+            await process.WaitForExitAsync(ct);
+            sw.Stop();
+
+            if (process.ExitCode == 0)
+            {
+                if (sw.Elapsed.TotalSeconds < 3)
+                    return (true, isPortable ? "启动成功" : "安装程序已启动，请按照安装向导完成操作");
+                return (true, isPortable ? "启动成功" : "安装成功");
+            }
+
+            return (false, $"安装失败 (退出码: {process.ExitCode})");
+        }
+        catch (OperationCanceledException)
+        {
+            return (false, "安装已取消");
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                $"无法启动安装程序: {filePath}\n{ex.Message}", ex);
+            return (false, $"无法启动: {ex.Message}");
         }
     }
 

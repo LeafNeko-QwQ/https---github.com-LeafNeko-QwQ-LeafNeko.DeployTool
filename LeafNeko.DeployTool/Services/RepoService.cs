@@ -28,17 +28,18 @@ public class RepoService
 
     public async Task<byte[]> DownloadBytesAsync(string fileName,
         IProgress<double>? progress = null,
-        IProgress<string>? speedCallback = null)
+        IProgress<string>? speedCallback = null,
+        CancellationToken ct = default)
     {
         var url = BaseUrl + fileName;
 
         return await RetryAsync(async () =>
         {
-            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-            using var stream = await response.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync(ct);
 
             var buffer = new byte[8192];
             var totalRead = 0L;
@@ -48,9 +49,9 @@ public class RepoService
             var lastReport = 0L;
 
             int bytesRead;
-            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            while ((bytesRead = await stream.ReadAsync(buffer, ct)) > 0)
             {
-                await ms.WriteAsync(buffer.AsMemory(0, bytesRead));
+                await ms.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
                 totalRead += bytesRead;
                 if (totalBytes > 0)
                     progress?.Report((double)totalRead / totalBytes * 100);

@@ -19,7 +19,7 @@
         </Grid.RowDefinitions>
 
         <!-- ========== 顶部品牌栏 ========== -->
-        <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="⚙" FontSize="22" VerticalAlignment="Center"/>
@@ -49,7 +49,7 @@
         </Border>
 
         <!-- ========== 分类标签栏 ========== -->
-        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="24,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -71,7 +71,7 @@
                                     MouseLeftButtonDown="CategoryTab_Click">
                                 <TextBlock Text="{Binding}"
                                            FontSize="13" FontWeight="SemiBold"
-                                           Foreground="#9E9E9E"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
                                            Name="tabText"/>
                             </Border>
                         </DataTemplate>
@@ -79,13 +79,13 @@
                 </ItemsControl>
 
                 <!-- 搜索框 -->
-                <Border Grid.Column="1" CornerRadius="14" Background="#F5F5F5"
+                <Border Grid.Column="1" CornerRadius="14" Background="{StaticResource CardAccentBrush}"
                         BorderBrush="Transparent" BorderThickness="1"
                         Padding="10,4" VerticalAlignment="Center" MinWidth="180">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="12" Foreground="#3D3D3D"
+                                 FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
                                  Background="Transparent" BorderThickness="0"
                                  VerticalAlignment="Center"
                                  Width="150"
@@ -110,7 +110,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- 加载进度条（仅在加载时显示） -->
-                <Border Grid.Row="0" Background="White" CornerRadius="8"
+                <Border Grid.Row="0" Background="{StaticResource CardBackgroundBrush}" CornerRadius="8"
                         Padding="12,10" Margin="0,0,0,8"
                         Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}">
                     <StackPanel>
@@ -126,14 +126,17 @@
                                      Value="{Binding OverallProgress}"
                                      Foreground="{StaticResource PrimaryBrush}"
                                      Background="{StaticResource BorderLightBrush}"
-                                     BorderThickness="0"/>
+                                     BorderThickness="0"
+                                     Style="{StaticResource ShimmerProgressBar}"/>
                     </StackPanel>
                 </Border>
 
-                <ScrollViewer Grid.Row="1"
+                <ScrollViewer x:Name="CardScrollViewer" Grid.Row="1"
                               VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding FilteredApps}">
+                              HorizontalScrollBarVisibility="Disabled"
+                              ClipToBounds="False">
+                    <ItemsControl ItemsSource="{Binding FilteredApps}"
+                                  Padding="4">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal"/>
@@ -146,13 +149,33 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+
+                <!-- 连接成功动画叠加层 -->
+                <Border x:Name="ConnectionSuccessOverlay" Panel.ZIndex="10"
+                        Opacity="0" Visibility="Collapsed" IsHitTestVisible="False"
+                        CornerRadius="16"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Width="260" Height="160">
+                    <Border.Background>
+                        <SolidColorBrush Color="#40000000" Opacity="0.6"/>
+                    </Border.Background>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="🔗" FontSize="48" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource PrimaryBrush}" Opacity="0.9"/>
+                        <TextBlock Text="连接成功" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{StaticResource PrimaryBrush}" Opacity="0.9"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <!-- 右侧：功能卡片区 -->
-            <StackPanel Grid.Column="1" Margin="12,0,24,0">
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="12,0,12,0">
+            <StackPanel>
 
                 <!-- 系统信息卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                <Border x:Name="SystemInfoCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -160,27 +183,28 @@
                             <TextBlock Text="系统信息" FontSize="14" FontWeight="SemiBold"
                                        Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="OS: "/><Run Text="{Binding SystemInfo.OsInfo}"/>
                         </TextBlock>
-                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="CPU: "/><Run Text="{Binding SystemInfo.CpuInfo}"/>
                         </TextBlock>
-                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="RAM: "/><Run Text="{Binding SystemInfo.RamInfo}"/>
                         </TextBlock>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock FontSize="11" Foreground="#9E9E9E">
+                            <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}">
                                 <Run Text="C盘: "/><Run Text="{Binding SystemInfo.DiskInfo}"/>
                             </TextBlock>
-                            <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="#EF5350"
+                            <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="{StaticResource ErrorBrush}"
                                        Visibility="{Binding SystemInfo.DiskLow, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- 部署历史卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                <Border x:Name="HistoryCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -189,13 +213,14 @@
                                        Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="{Binding RecentHistoryText}"
-                                   FontSize="11" Foreground="#9E9E9E"
+                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                                    LineHeight="18" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
 
                 <!-- 便携应用部署卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                <Border x:Name="PortableCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
@@ -215,7 +240,8 @@
                 </Border>
 
                 <!-- 快捷方式部署卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                <Border x:Name="ShortcutCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
@@ -235,7 +261,8 @@
                 </Border>
 
                 <!-- 版本检测卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                <Border x:Name="VersionCheckCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
@@ -255,7 +282,8 @@
                 </Border>
 
                 <!-- 更新历史卡片 -->
-                <Border Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                <Border x:Name="ChangelogCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
                         Effect="{StaticResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -265,7 +293,7 @@
                         </StackPanel>
                         <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
                             <TextBlock Text="{Binding ChangelogText}"
-                                       FontSize="11" Foreground="#666666"
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" LineHeight="18"
                                        FontFamily="Segoe UI, Microsoft YaHei"/>
                         </ScrollViewer>
@@ -273,7 +301,8 @@
                 </Border>
 
                 <!-- 进度显示区 — 多任务动态列表 -->
-                <Border Background="White" CornerRadius="12" Padding="20"
+                <Border x:Name="ProgressCard" Loaded="SidebarCard_Loaded"
+                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20"
                         Effect="{StaticResource CardShadow}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -298,6 +327,7 @@
                                      Background="{StaticResource BorderLightBrush}"
                                      BorderThickness="0"
                                      Margin="0,0,0,4"
+                                     Style="{StaticResource ShimmerProgressBar}"
                                      Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                         <!-- 活跃任务列表 -->
@@ -306,15 +336,15 @@
                             <ItemsControl ItemsSource="{Binding ActiveTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="8" Background="#FEFEFE"
-                                                BorderBrush="#F0F0F0" BorderThickness="1"
+                                        <Border CornerRadius="8" Background="{StaticResource CardBackgroundBrush}"
+                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
                                                 Padding="10" Margin="0,0,0,6">
                                             <StackPanel>
                                                 <!-- 任务名称 + 状态 -->
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                                     <TextBlock Text="{Binding Name}"
                                                                FontSize="12" FontWeight="SemiBold"
-                                                               Foreground="#3D3D3D"
+                                                               Foreground="{StaticResource TextPrimaryBrush}"
                                                                TextTrimming="CharacterEllipsis"
                                                                MaxWidth="180"/>
                                                     <TextBlock Text="{Binding StatusText}"
@@ -324,7 +354,7 @@
 
                                                 <!-- 阶段文字 -->
                                                 <TextBlock Text="{Binding PhaseText}"
-                                                           FontSize="11" Foreground="#9E9E9E"
+                                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                                                            Margin="0,0,0,4"
                                                            TextTrimming="CharacterEllipsis"
                                                            Visibility="{Binding PhaseText, Converter={StaticResource StringToVisibilityConverter}}"/>
@@ -337,31 +367,34 @@
                                                              Background="{StaticResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,4"
+                                                             Style="{StaticResource ShimmerProgressBar}"
                                                              Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 下载进度 -->
                                                 <ProgressBar Height="3"
                                                              Minimum="0" Maximum="100"
                                                              Value="{Binding DownloadProgress}"
-                                                             Foreground="#F8A5B2"
+                                                             Foreground="{StaticResource PrimaryBrush}"
                                                              Background="{StaticResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,3"
+                                                             Style="{StaticResource ShimmerProgressBar}"
                                                              Visibility="{Binding DownloadProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 解压进度 -->
                                                 <ProgressBar Height="3"
                                                              Minimum="0" Maximum="100"
                                                              Value="{Binding ExtractProgress}"
-                                                             Foreground="#FFB6C1"
+                                                             Foreground="{StaticResource PrimaryLightBrush}"
                                                              Background="{StaticResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,3"
+                                                             Style="{StaticResource ShimmerProgressBar}"
                                                              Visibility="{Binding ExtractProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 速度 -->
                                                 <TextBlock Text="{Binding SpeedText}"
-                                                           FontSize="10" Foreground="#9E9E9E"
+                                                           FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
                                                            Margin="0,2,0,0"
                                                            Visibility="{Binding SpeedText, Converter={StaticResource StringToVisibilityConverter}}"/>
                                             </StackPanel>
@@ -374,14 +407,15 @@
                 </Border>
 
             </StackPanel>
+            </ScrollViewer>
         </Grid>
 
         <!-- ========== 底部操作栏 ========== -->
-        <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="SelectAllBtn"
-                            Content="☑ 全选"
+                            Content="☐ 全选"
                             Style="{StaticResource SecondaryButton}"
                             Margin="0,0,8,0"
                             Click="SelectAllBtn_Click"/>

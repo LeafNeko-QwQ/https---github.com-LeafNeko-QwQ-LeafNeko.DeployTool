@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -57,6 +59,8 @@ public partial class AppCard : UserControl
     // ── 弹跳隔离标志 ──
     private bool _isBouncing;
 
+    private static int _entranceCounter;
+
     public AppCard()
     {
         InitializeComponent();
@@ -77,21 +81,35 @@ public partial class AppCard : UserControl
         PreviewMouseLeftButtonDown += OnCardClick;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        DataContextChanged += OnDataContextChanged;
     }
 
     #region 入场动画
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        var delay = Interlocked.Increment(ref _entranceCounter) * 60;
+
         var entrance = new DoubleAnimation
         {
             From = 0.82,
             To = 1.0,
             Duration = TimeSpan.FromMilliseconds(480),
+            BeginTime = TimeSpan.FromMilliseconds(delay),
             EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut }
         };
         ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, entrance);
         ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, entrance);
+
+        var fadeIn = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = TimeSpan.FromMilliseconds(350),
+            BeginTime = TimeSpan.FromMilliseconds(delay),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        BeginAnimation(OpacityProperty, fadeIn);
 
         StartGameLoop();
     }
@@ -99,6 +117,42 @@ public partial class AppCard : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         StopGameLoop();
+        if (DataContext is AppItemViewModel vm)
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+    }
+
+    #endregion
+
+    #region 选中脉冲动画
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is AppItemViewModel oldVm)
+            oldVm.PropertyChanged -= OnViewModelPropertyChanged;
+        if (e.NewValue is AppItemViewModel newVm)
+            newVm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
+        {
+            if (DataContext is AppItemViewModel vm && vm.IsSelected)
+                StartSelectionPulse();
+        }
+    }
+
+    private void StartSelectionPulse()
+    {
+        var pulse = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(350) };
+        pulse.KeyFrames.Add(new SplineDoubleKeyFrame(1.05,
+            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        pulse.KeyFrames.Add(new SplineDoubleKeyFrame(1.0,
+            TimeSpan.FromMilliseconds(180), new KeySpline(0, 0, 0.5, 1)));
+
+        var scaleTransform = (ScaleTransform)ScaleContainer.RenderTransform;
+        scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
     }
 
     #endregion

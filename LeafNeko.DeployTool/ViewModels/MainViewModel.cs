@@ -60,37 +60,38 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public string ChangelogText { get; } = @"v1.0.0 — 2026-05-16
+    private string _changelogText = "";
 
-🎉 首次发布
+    public string ChangelogText
+    {
+        get => _changelogText;
+        set { _changelogText = value; OnPropertyChanged(); }
+    }
+
+    private void InitChangelog()
+    {
+        ChangelogText = @"v1.0.10 — 2026-05-17
+• 暗色模式（一键切换，配置持久化）
+• 软件搜索过滤（按名称/分类实时筛选）
+• 独立部署进度窗口（多任务并行 + 取消 + ETA）
+• 系统信息面板（OS/CPU/RAM/磁盘）
+• 部署历史记录（最近 5 条，JSON 持久化）
+• 版本检测增强 + 自更新机制
+
+v1.0.8 — 2026-05-17
+• 动画引擎重写：单帧游戏循环替代多路 DispatcherTimer
+• 悬停 3D 倾斜 + 阴影跟随 + 辉光渐变
+• 入场弹入动画 + SplineKeyFrame 点击弹簧动画
+• 应用图标 + 配置模板上传
+
+v1.0.0 — 2026-05-16
 • 粉色主题界面，软件卡片网格，分类标签切换
 • 从 Gitee 仓库拉取软件清单 + 便携应用清单
-• 安装版软件：下载 EXE/MSI 自动运行安装程序
-• 便携应用部署：直链下载 ZIP → 解压到 C:\
-• 快捷方式部署：下载快捷方式包 → 解压到桌面
-• 版本检测：扫描注册表检测本地已安装软件
-
-✨ 动画体验
-• 卡片悬停 3D 倾斜 + 阴影跟随 + 辉光渐变 (CSS 风格平滑过渡)
-• 入场动画 + 点击弹簧弹跳 (SplineKeyFrame)
-• 选中高亮：粉色边框 + 背景切换
-
-🔧 核心能力
-• 全选 / 取消全选分离，整卡点击勾选
-• 一键部署全部：便携 + 快捷方式 + 安装版并行执行
-• 多任务并发下载 (最大 3 并发，SemaphoreSlim)
-• 部署确认弹窗：展示更新日志 + 内容清单
-• 指数退避重试：502/503/504/超时/连接中断
-
-🇨🇳 本地化
-• ZIP 中文文件名自动编码检测 (GBK 回退)
-• 转链服务文件名识别 (RFC 5987)
-• PE 文件头 MZ 验证
-
-🛠 技术栈
-• .NET 9 WPF 单文件自包含 EXE
-• MVVM 架构 + 桌面统一临时目录
-• 原子化配置写入 + Trace 操作日志";
+• 安装版/便携应用/快捷方式三种部署方式
+• 多任务并发下载 (SemaphoreSlim 最大 3 并发)
+• 版本检测 + 部署确认弹窗 + 指数退避重试
+• ZIP 中文文件名自动编码检测 (GBK 回退)";
+    }
 
     private string _searchText = "";
 

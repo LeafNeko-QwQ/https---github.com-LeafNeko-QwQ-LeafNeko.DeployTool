@@ -3,13 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="📦 便携应用部署确认"
         Icon="/Resources/logo.png"
-        Width="520" Height="560"
+        Width="520" Height="620"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" AllowsTransparency="True"
         ResizeMode="NoResize"
         Background="Transparent">
 
-    <Border CornerRadius="16" Background="White" BorderBrush="#F8A5B2" BorderThickness="1">
+    <Border CornerRadius="16" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1"
+            MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
         <Border.Effect>
             <DropShadowEffect Color="#1A000000" BlurRadius="20" ShadowDepth="4" Opacity="0.3"/>
         </Border.Effect>
@@ -30,28 +31,28 @@
                     <TextBlock Text="📦" FontSize="22" VerticalAlignment="Center"/>
                     <TextBlock Text="便携应用部署确认"
                                FontSize="18" FontWeight="Bold"
-                               Foreground="#3D3D3D"
+                               Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
             <!-- 更新日期 -->
             <TextBlock Grid.Row="1" Text="{Binding DateText}"
-                       FontSize="13" Foreground="#9E9E9E"
+                       FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
                        Margin="0,0,0,10"/>
 
             <!-- 更新内容标题 -->
             <TextBlock Grid.Row="2" Text="📋 更新内容"
                        FontSize="14" FontWeight="SemiBold"
-                       Foreground="#3D3D3D"
+                       Foreground="{StaticResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
             <!-- 更新日志（可滚动） -->
-            <Border Grid.Row="3" CornerRadius="8" Background="#FFF5F7"
+            <Border Grid.Row="3" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
                     Padding="12" Margin="0,0,0,12">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="180">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="160">
                     <TextBlock Text="{Binding UpdateLog}"
-                               FontSize="12" Foreground="#666666"
+                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                TextWrapping="Wrap" LineHeight="20"/>
                 </ScrollViewer>
             </Border>
@@ -59,18 +60,18 @@
             <!-- 部署内容标题 -->
             <TextBlock Grid.Row="4" Text="{Binding LinkCountText}"
                        FontSize="14" FontWeight="SemiBold"
-                       Foreground="#3D3D3D"
+                       Foreground="{StaticResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
             <!-- 直链列表（可滚动） -->
-            <Border Grid.Row="5" CornerRadius="8" Background="#FFF5F7"
-                    Padding="12" Margin="0,0,0,16" MaxHeight="100">
+            <Border Grid.Row="5" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
+                    Padding="12" Margin="0,0,0,16" MaxHeight="80">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Links}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
-                                           FontSize="11" Foreground="#9E9E9E"
+                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis"
                                            Margin="0,0,0,4"/>
                             </DataTemplate>
@@ -80,13 +81,13 @@
             </Border>
 
             <!-- 按钮 -->
-            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                 <Button Content="取消"
                         Width="120" Height="40"
                         FontSize="14"
-                        Foreground="#9E9E9E"
-                        Background="White"
-                        BorderBrush="#E0E0E0"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderLightBrush}"
                         BorderThickness="1"
                         Cursor="Hand"
                         Click="CancelBtn_Click">
@@ -105,7 +106,7 @@
                         Width="140" Height="40"
                         FontSize="14"
                         Foreground="White"
-                        Background="#F8A5B2"
+                        Background="{StaticResource PrimaryBrush}"
                         BorderThickness="0"
                         Cursor="Hand"
                         Margin="16,0,0,0"

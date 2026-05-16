@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using LeafNeko.DeployTool.Helpers;
 using LeafNeko.DeployTool.Models;
 using LeafNeko.DeployTool.Services;
@@ -36,7 +38,7 @@ public partial class MainWindow : Window
 
     private void UpdateSelectAllButton()
     {
-        SelectAllBtn.Content = _viewModel.IsAllSelected ? "取消全选" : "☑ 全选";
+        SelectAllBtn.Content = _viewModel.IsAllSelected ? "☑ 取消全选" : "☐ 全选";
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -46,6 +48,7 @@ public partial class MainWindow : Window
         _viewModel.SystemInfo.Refresh();
         await _viewModel.LoadAppsAsync();
         _viewModel.OverallProgress = 0;
+        ShowConnectionSuccessAnimation();
         _ = CheckSelfUpdateAsync();
     }
 
@@ -126,15 +129,16 @@ public partial class MainWindow : Window
         if (sender is Border border && border.Child is TextBlock tb && tb.DataContext is string category)
         {
             _viewModel.SelectedCategory = category;
+            SmoothScrollToTop();
 
             if (_selectedTabBorder != null && _selectedTabText != null)
             {
                 _selectedTabBorder.Background = Brushes.Transparent;
-                _selectedTabText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9E9E9E"));
+                _selectedTabText.Foreground = (Brush)FindResource("TextSecondaryBrush");
             }
 
-            border.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF0F2F5"));
-            tb.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8A5B2"));
+            border.Background = (Brush)FindResource("CardAccentBrush");
+            tb.Foreground = (Brush)FindResource("PrimaryBrush");
 
             _selectedTabBorder = border;
             _selectedTabText = tb;
@@ -319,7 +323,7 @@ public partial class MainWindow : Window
             (Func<DeployTask, Task>)(async (task) =>
             {
                 task.PhaseText = "下载中...";
-                await _deployService.DownloadAndInstallAppAsync(app.Name, app.Url,
+                var result = await _deployService.DownloadAndInstallAppAsync(app.Name, app.Url,
                     new Progress<double>(p =>
                     {
                         app.DownloadProgress = p;
@@ -330,7 +334,7 @@ public partial class MainWindow : Window
                 app.Status = Models.AppStatus.Completed;
                 app.IsSelected = false;
                 task.OverallProgress = 100;
-                task.PhaseText = "安装完成";
+                task.PhaseText = result;
             })
         )).ToList();
 
@@ -399,7 +403,8 @@ public partial class MainWindow : Window
                 }
                 await _deployService.DeployPortableFromLinksAsync(links, task,
                     overwriteCallback: null,
-                    new Progress<string>(info => task.SpeedText = info));
+                    new Progress<string>(info => task.SpeedText = info),
+                    ct);
                 task.PhaseText = "便携应用完成";
             }
             catch (Exception ex)
@@ -416,7 +421,8 @@ public partial class MainWindow : Window
             {
                 await _deployService.DeployShortcutsAsync(
                     new Progress<double>(p => task.OverallProgress = p),
-                    new Progress<string>(info => task.SpeedText = info));
+                    new Progress<string>(info => task.SpeedText = info),
+                    ct);
                 task.PhaseText = "快捷方式完成";
             }
             catch (Exception ex)
@@ -444,16 +450,18 @@ public partial class MainWindow : Window
                 task.PhaseText = $"({i + 1}/{selected.Count}) {app.Name}";
                 try
                 {
-                    await _deployService.DownloadAndInstallAppAsync(app.Name, app.Url,
+                    var statusMsg = await _deployService.DownloadAndInstallAppAsync(app.Name, app.Url,
                         new Progress<double>(p =>
                         {
                             app.DownloadProgress = p;
                             task.OverallProgress = (double)i / selected.Count * 100 + p / selected.Count;
                         }),
                         new Progress<string>(info => task.SpeedText = info),
-                        new Progress<string>(path => task.PhaseText = $"({i + 1}/{selected.Count}) 安装: {Path.GetFileName(path)}"));
+                        new Progress<string>(path => task.PhaseText = $"({i + 1}/{selected.Count}) 安装: {Path.GetFileName(path)}"),
+                        ct);
                     app.Status = Models.AppStatus.Completed;
                     app.IsSelected = false;
+                    task.PhaseText = statusMsg;
                 }
                 catch (Exception ex)
                 {
@@ -505,6 +513,86 @@ public partial class MainWindow : Window
     #endregion
 
     #region 辅助方法
+
+    private void ShowConnectionSuccessAnimation()
+    {
+        ConnectionSuccessOverlay.Visibility = Visibility.Visible;
+        var sb = new Storyboard();
+        var fadeIn = new DoubleAnimation(0, 0.85, TimeSpan.FromMilliseconds(400))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(fadeIn, ConnectionSuccessOverlay);
+        Storyboard.SetTargetProperty(fadeIn, new PropertyPath(OpacityProperty));
+
+        var fadeOut = new DoubleAnimation(0.85, 0, TimeSpan.FromMilliseconds(600))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(1900),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(fadeOut, ConnectionSuccessOverlay);
+        Storyboard.SetTargetProperty(fadeOut, new PropertyPath(OpacityProperty));
+
+        sb.Children.Add(fadeIn);
+        sb.Children.Add(fadeOut);
+        sb.Completed += (_, _) => ConnectionSuccessOverlay.Visibility = Visibility.Collapsed;
+        sb.Begin();
+    }
+
+    private static int _sidebarCardIndex;
+
+    private void SidebarCard_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Border card) return;
+
+        var index = Interlocked.Increment(ref _sidebarCardIndex);
+        card.RenderTransformOrigin = new Point(0.5, 0.5);
+        card.RenderTransform = new TranslateTransform(50, 0);
+        card.Opacity = 0;
+
+        var sb = new Storyboard { BeginTime = TimeSpan.FromMilliseconds(index * 80) };
+
+        var slideIn = new DoubleAnimation(50, 0, TimeSpan.FromMilliseconds(400))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(slideIn, card);
+        Storyboard.SetTargetProperty(slideIn, new PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
+
+        var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(400))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(fadeIn, card);
+        Storyboard.SetTargetProperty(fadeIn, new PropertyPath(OpacityProperty));
+
+        sb.Children.Add(slideIn);
+        sb.Children.Add(fadeIn);
+        sb.Begin();
+    }
+
+    private void SmoothScrollToTop()
+    {
+        var startOffset = CardScrollViewer.VerticalOffset;
+        if (startOffset < 1) return;
+
+        var sw = Stopwatch.StartNew();
+        var duration = 350;
+        EventHandler? handler = null;
+        handler = (_, _) =>
+        {
+            var elapsed = sw.Elapsed.TotalMilliseconds;
+            var t = Math.Clamp(elapsed / duration, 0, 1);
+            var eased = 1 - Math.Pow(1 - t, 3);
+            CardScrollViewer.ScrollToVerticalOffset(startOffset * (1 - eased));
+            if (t >= 1)
+            {
+                CompositionTarget.Rendering -= handler;
+                sw.Stop();
+            }
+        };
+        CompositionTarget.Rendering += handler;
+    }
 
     private void SetAllButtonsEnabled(bool enabled)
     {

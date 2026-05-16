@@ -88,12 +88,22 @@ public partial class DeployProgressWindow : Window, INotifyPropertyChanged
         try
         {
             await Task.WhenAll(running);
-            OverallProgress = 100;
-            ElapsedText = $"总用时 {sw.Elapsed.Minutes}:{sw.Elapsed.Seconds:D2}";
-            EtaText = "";
+            if (!_cancelled)
+            {
+                OverallProgress = 100;
+                ElapsedText = $"总用时 {sw.Elapsed.Minutes}:{sw.Elapsed.Seconds:D2}";
+                EtaText = "";
+            }
+            else
+            {
+                ElapsedText = $"已用 {sw.Elapsed.Minutes}:{sw.Elapsed.Seconds:D2} (已取消)";
+                EtaText = "";
+            }
         }
         catch (OperationCanceledException)
         {
+            _cancelled = true;
+            ElapsedText = $"已用 {sw.Elapsed.Minutes}:{sw.Elapsed.Seconds:D2} (已取消)";
             Trace.WriteLine("[DeployProgressWindow] 用户取消了部署");
         }
         finally
@@ -136,6 +146,7 @@ public partial class DeployProgressWindow : Window, INotifyPropertyChanged
         _cancelled = true;
         Cts.Cancel();
         CancelBtn.IsEnabled = false;
+        CancelBtn.Content = "已取消";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
