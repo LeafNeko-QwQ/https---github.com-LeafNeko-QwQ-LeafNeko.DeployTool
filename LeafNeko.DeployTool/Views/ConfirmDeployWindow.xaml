@@ -9,7 +9,7 @@
         ResizeMode="NoResize"
         Background="Transparent">
 
-    <Border CornerRadius="16" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1"
+    <Border CornerRadius="16" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
             MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
         <Border.Effect>
             <DropShadowEffect Color="#1A000000" BlurRadius="20" ShadowDepth="4" Opacity="0.3"/>
@@ -32,28 +32,28 @@
                     <TextBlock Text="📦" FontSize="22" VerticalAlignment="Center"/>
                     <TextBlock Text="便携应用部署确认"
                                FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
                                Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
             <!-- 更新日期 -->
             <TextBlock Grid.Row="1" Text="{Binding DateText}"
-                       FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="0,0,0,10"/>
 
             <!-- 更新内容标题 -->
             <TextBlock Grid.Row="2" Text="📋 更新内容"
                        FontSize="14" FontWeight="SemiBold"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
             <!-- 更新日志（可滚动，限制高度避免挤压） -->
-            <Border Grid.Row="3" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
+            <Border Grid.Row="3" CornerRadius="8" Background="{DynamicResource CardAccentBrush}"
                     Padding="12" Margin="0,0,0,12" MaxHeight="100">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <TextBlock Text="{Binding UpdateLog}"
-                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap" LineHeight="20"/>
                 </ScrollViewer>
             </Border>
@@ -61,18 +61,18 @@
             <!-- 部署内容标题 -->
             <TextBlock Grid.Row="4" Text="{Binding LinkCountText}"
                        FontSize="14" FontWeight="SemiBold"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
             <!-- 直链列表（占满剩余空间，不挤压按钮） -->
-            <Border Grid.Row="5" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
+            <Border Grid.Row="5" CornerRadius="8" Background="{DynamicResource CardAccentBrush}"
                     Padding="12" Margin="0,0,0,12">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Links}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis"
                                            Margin="0,0,0,4"/>
                             </DataTemplate>
@@ -86,9 +86,9 @@
                 <Button Content="取消"
                         Width="120" Height="40"
                         FontSize="14"
-                        Foreground="{StaticResource TextSecondaryBrush}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderLightBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderLightBrush}"
                         BorderThickness="1"
                         Cursor="Hand"
                         Click="CancelBtn_Click">
@@ -107,7 +107,7 @@
                         Width="140" Height="40"
                         FontSize="14"
                         Foreground="White"
-                        Background="{StaticResource PrimaryBrush}"
+                        Background="{DynamicResource PrimaryBrush}"
                         BorderThickness="0"
                         Cursor="Hand"
                         Margin="16,0,0,0"

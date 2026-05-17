@@ -60,6 +60,9 @@ public partial class AppCard : UserControl
     // ── 弹跳隔离标志 ──
     private bool _isBouncing;
 
+    // ── 多选进入标志（每张卡每次进入只触发一次切换）──
+    private bool _multiSelectEntered;
+
     private static int _entranceCounter;
 
     // ── 长按多选 ──
@@ -297,6 +300,26 @@ public partial class AppCard : UserControl
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
+        // ── 长按多选：计时器期间累积待处理卡片 ──
+        if (_longPressTimer != null && _longPressOrigin != this)
+        {
+            _pendingMultiSelectCards ??= new();
+            _pendingMultiSelectCards.Add(this);
+            return;
+        }
+
+        // ── 多选激活：鼠标移入即切换（鼠标按下拖拽时 MouseEnter 不可靠）──
+        if (_isMultiSelectActive && _longPressOrigin != this && !_multiSelectEntered)
+        {
+            _multiSelectEntered = true;
+            if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
+            {
+                vm.IsSelected = !vm.IsSelected;
+                StartBounce();
+            }
+            return;
+        }
+
         var pos = e.GetPosition(this);
         var halfW = Math.Max(ActualWidth / 2, 1);
         var halfH = Math.Max(ActualHeight / 2, 1);
@@ -319,6 +342,8 @@ public partial class AppCard : UserControl
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
     {
+        _multiSelectEntered = false;
+
         _targetScale = 1.0;
         _targetSkewX = 0;
         _targetSkewY = 0;

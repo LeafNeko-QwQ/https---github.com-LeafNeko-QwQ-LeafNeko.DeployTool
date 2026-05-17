@@ -8,7 +8,7 @@
         Width="1100" Height="750"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -20,16 +20,16 @@
         </Grid.RowDefinitions>
 
         <!-- ========== 顶部品牌栏 ========== -->
-        <Border Grid.Row="0" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="⚙" FontSize="22" VerticalAlignment="Center"/>
                     <TextBlock FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}"
+                               Foreground="{DynamicResource PrimaryBrush}"
                                Margin="8,0,0,0" VerticalAlignment="Center">
                         <Run Text="LeafNeko 装机助手"/>
                         <Run Text="{x:Static vm:MainViewModel.VersionText}"
-                             FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"/>
+                             FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </TextBlock>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -38,11 +38,11 @@
                                MouseLeftButtonDown="DarkModeToggle_Click"
                                ToolTip="切换深色/浅色模式"/>
                     <TextBlock Text="B站" FontSize="13"
-                               Foreground="{StaticResource PrimaryBrush}"
+                               Foreground="{DynamicResource PrimaryBrush}"
                                Cursor="Hand" Margin="0,0,16,0"
                                MouseLeftButtonDown="BilibiliLink_Click"/>
                     <TextBlock Text="Gitee" FontSize="13"
-                               Foreground="{StaticResource PrimaryBrush}"
+                               Foreground="{DynamicResource PrimaryBrush}"
                                Cursor="Hand"
                                MouseLeftButtonDown="GiteeLink_Click"/>
                 </StackPanel>
@@ -50,7 +50,7 @@
         </Border>
 
         <!-- ========== 分类标签栏 ========== -->
-        <Border Grid.Row="1" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="24,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -73,7 +73,7 @@
                                     Tag="{Binding}">
                                 <TextBlock Text="{Binding}"
                                            FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            Name="tabText"/>
                             </Border>
                         </DataTemplate>
@@ -81,13 +81,13 @@
                 </ItemsControl>
 
                 <!-- 搜索框 -->
-                <Border Grid.Column="1" CornerRadius="14" Background="{StaticResource CardAccentBrush}"
+                <Border Grid.Column="1" CornerRadius="14" Background="{DynamicResource CardAccentBrush}"
                         BorderBrush="Transparent" BorderThickness="1"
                         Padding="8,2" VerticalAlignment="Center" MinWidth="200">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="4,0,6,0"/>
                         <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
+                                 FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="Transparent" BorderThickness="0"
                                  VerticalAlignment="Center"
                                  Width="160"/>
@@ -111,24 +111,24 @@
                 </Grid.RowDefinitions>
 
                 <!-- 加载进度条（仅在加载时显示） -->
-                <Border Grid.Row="0" Background="{StaticResource CardBackgroundBrush}" CornerRadius="8"
+                <Border Grid.Row="0" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8"
                         Padding="12,10" Margin="0,0,0,8"
                         Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="⏳" FontSize="14" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding ProgressStatus}"
-                                       FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                        Margin="6,0,0,0" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                         <ProgressBar Height="6"
                                      Minimum="0" Maximum="100"
                                      Value="{Binding OverallProgress}"
-                                     Foreground="{StaticResource PrimaryBrush}"
-                                     Background="{StaticResource BorderLightBrush}"
+                                     Foreground="{DynamicResource PrimaryBrush}"
+                                     Background="{DynamicResource BorderLightBrush}"
                                      BorderThickness="0"
-                                     Style="{StaticResource ShimmerProgressBar}"/>
+                                     Style="{DynamicResource ShimmerProgressBar}"/>
                     </StackPanel>
                 </Border>
 
@@ -160,28 +160,28 @@
 
                 <!-- 系统信息卡片 -->
                 <Border x:Name="SystemInfoCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,12"
+                        Effect="{DynamicResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="🖥" FontSize="20" VerticalAlignment="Center"/>
                             <TextBlock Text="系统信息" FontSize="14" FontWeight="SemiBold"
                                        Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="OS: "/><Run Text="{Binding SystemInfo.OsInfo}"/>
                         </TextBlock>
-                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="CPU: "/><Run Text="{Binding SystemInfo.CpuInfo}"/>
                         </TextBlock>
-                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,3">
                             <Run Text="RAM: "/><Run Text="{Binding SystemInfo.RamInfo}"/>
                         </TextBlock>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}">
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}">
                                 <Run Text="C盘: "/><Run Text="{Binding SystemInfo.DiskInfo}"/>
                             </TextBlock>
-                            <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="{StaticResource ErrorBrush}"
+                            <TextBlock Text=" ⚠ 空间不足" FontSize="11" Foreground="{DynamicResource ErrorBrush}"
                                        Visibility="{Binding SystemInfo.DiskLow, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </StackPanel>
                     </StackPanel>
@@ -189,8 +189,8 @@
 
                 <!-- 便携应用部署卡片 -->
                 <Border x:Name="PortableCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{DynamicResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📦" FontSize="24" VerticalAlignment="Center"/>
@@ -198,11 +198,11 @@
                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="从云端下载免安装应用，解压到 C 盘根目录"
-                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,8,0,0" TextWrapping="Wrap"/>
                         <Button x:Name="DeployPortableBtn"
                                 Content="执行部署"
-                                Style="{StaticResource PrimaryButton}"
+                                Style="{DynamicResource DeployBlinkPrimaryButton}"
                                 Margin="0,16,0,0"
                                 Click="DeployPortableBtn_Click"/>
                     </StackPanel>
@@ -210,8 +210,8 @@
 
                 <!-- 快捷方式部署卡片 -->
                 <Border x:Name="ShortcutCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{DynamicResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🔗" FontSize="24" VerticalAlignment="Center"/>
@@ -219,11 +219,11 @@
                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="从云端下载快捷方式，自动复制到当前用户桌面"
-                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,8,0,0" TextWrapping="Wrap"/>
                         <Button x:Name="DeployShortcutsBtn"
                                 Content="执行部署"
-                                Style="{StaticResource PrimaryButton}"
+                                Style="{DynamicResource DeployBlinkPrimaryButton}"
                                 Margin="0,16,0,0"
                                 Click="DeployShortcutsBtn_Click"/>
                     </StackPanel>
@@ -231,8 +231,8 @@
 
                 <!-- 版本检测卡片 -->
                 <Border x:Name="VersionCheckCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{DynamicResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🔍" FontSize="24" VerticalAlignment="Center"/>
@@ -240,11 +240,11 @@
                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="检测本地是否已安装清单中的软件"
-                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,8,0,0" TextWrapping="Wrap"/>
                         <Button x:Name="CheckVersionBtn"
                                 Content="🔄 检测更新"
-                                Style="{StaticResource SecondaryButton}"
+                                Style="{DynamicResource SecondaryButton}"
                                 Margin="0,12,0,0"
                                 Click="CheckVersionBtn_Click"/>
                     </StackPanel>
@@ -252,8 +252,8 @@
 
                 <!-- 更新历史卡片 -->
                 <Border x:Name="ChangelogCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="20" Margin="0,0,0,16"
+                        Effect="{DynamicResource CardShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <TextBlock Text="📋" FontSize="24" VerticalAlignment="Center"/>
@@ -262,7 +262,7 @@
                         </StackPanel>
                         <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
                             <TextBlock Text="{Binding ChangelogText}"
-                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" LineHeight="18"
                                        FontFamily="Segoe UI, Microsoft YaHei"/>
                         </ScrollViewer>
@@ -271,8 +271,8 @@
 
                 <!-- 进度显示区 — 多任务动态列表 -->
                 <Border x:Name="ProgressCard" Loaded="SidebarCard_Loaded"
-                        Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="20"
-                        Effect="{StaticResource CardShadow}">
+                        Background="{DynamicResource CardBackgroundBrush}" CornerRadius="12" Padding="20"
+                        Effect="{DynamicResource CardShadow}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -283,7 +283,7 @@
                             <TextBlock Text="📊 进度显示"
                                        FontSize="15" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding ProgressStatus}"
-                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        Margin="12,0,0,0" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
@@ -292,12 +292,27 @@
                         <ProgressBar Grid.Row="0" Height="4"
                                      Minimum="0" Maximum="100"
                                      Value="{Binding OverallProgress}"
-                                     Foreground="{StaticResource PrimaryBrush}"
-                                     Background="{StaticResource BorderLightBrush}"
+                                     Foreground="{DynamicResource PrimaryBrush}"
+                                     Background="{DynamicResource BorderLightBrush}"
                                      BorderThickness="0"
                                      Margin="0,0,0,4"
-                                     Style="{StaticResource ShimmerProgressBar}"
+                                     Style="{DynamicResource ShimmerProgressBar}"
                                      Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+
+                        <!-- 取消倒计时进度条 -->
+                        <StackPanel Visibility="{Binding CancelCountdown, Converter={StaticResource ProgressToVisibilityConverter}}"
+                                    Margin="0,4,0,6">
+                            <TextBlock Text="{Binding CancelCountdownText}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,4"/>
+                            <ProgressBar Height="4"
+                                         Minimum="0" Maximum="100"
+                                         Value="{Binding CancelCountdown}"
+                                         Foreground="{DynamicResource PrimaryBrush}"
+                                         Background="{DynamicResource BorderLightBrush}"
+                                         BorderThickness="0"
+                                         Style="{DynamicResource ShimmerProgressBar}"/>
+                        </StackPanel>
 
                         <!-- 活跃任务列表 -->
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -305,25 +320,25 @@
                             <ItemsControl ItemsSource="{Binding ActiveTasks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="8" Background="{StaticResource CardBackgroundBrush}"
-                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                        <Border CornerRadius="8" Background="{DynamicResource CardBackgroundBrush}"
+                                                BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
                                                 Padding="10" Margin="0,0,0,6">
                                             <StackPanel>
                                                 <!-- 任务名称 + 状态 -->
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                                     <TextBlock Text="{Binding Name}"
                                                                FontSize="12" FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                                TextTrimming="CharacterEllipsis"
                                                                MaxWidth="180"/>
                                                     <TextBlock Text="{Binding StatusText}"
-                                                               FontSize="10" Foreground="{StaticResource PrimaryBrush}"
+                                                               FontSize="10" Foreground="{DynamicResource PrimaryBrush}"
                                                                Margin="8,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
 
                                                 <!-- 阶段文字 -->
                                                 <TextBlock Text="{Binding PhaseText}"
-                                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                                            Margin="0,0,0,4"
                                                            TextTrimming="CharacterEllipsis"
                                                            Visibility="{Binding PhaseText, Converter={StaticResource StringToVisibilityConverter}}"/>
@@ -332,38 +347,38 @@
                                                 <ProgressBar Height="4"
                                                              Minimum="0" Maximum="100"
                                                              Value="{Binding OverallProgress}"
-                                                             Foreground="{StaticResource PrimaryBrush}"
-                                                             Background="{StaticResource BorderLightBrush}"
+                                                             Foreground="{DynamicResource PrimaryBrush}"
+                                                             Background="{DynamicResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,4"
-                                                             Style="{StaticResource ShimmerProgressBar}"
+                                                             Style="{DynamicResource ShimmerProgressBar}"
                                                              Visibility="{Binding OverallProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 下载进度 -->
                                                 <ProgressBar Height="3"
                                                              Minimum="0" Maximum="100"
                                                              Value="{Binding DownloadProgress}"
-                                                             Foreground="{StaticResource PrimaryBrush}"
-                                                             Background="{StaticResource BorderLightBrush}"
+                                                             Foreground="{DynamicResource PrimaryBrush}"
+                                                             Background="{DynamicResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,3"
-                                                             Style="{StaticResource ShimmerProgressBar}"
+                                                             Style="{DynamicResource ShimmerProgressBar}"
                                                              Visibility="{Binding DownloadProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 解压进度 -->
                                                 <ProgressBar Height="3"
                                                              Minimum="0" Maximum="100"
                                                              Value="{Binding ExtractProgress}"
-                                                             Foreground="{StaticResource PrimaryLightBrush}"
-                                                             Background="{StaticResource BorderLightBrush}"
+                                                             Foreground="{DynamicResource PrimaryLightBrush}"
+                                                             Background="{DynamicResource BorderLightBrush}"
                                                              BorderThickness="0"
                                                              Margin="0,0,0,3"
-                                                             Style="{StaticResource ShimmerProgressBar}"
+                                                             Style="{DynamicResource ShimmerProgressBar}"
                                                              Visibility="{Binding ExtractProgress, Converter={StaticResource ProgressToVisibilityConverter}}"/>
 
                                                 <!-- 速度 -->
                                                 <TextBlock Text="{Binding SpeedText}"
-                                                           FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"
                                                            Margin="0,2,0,0"
                                                            Visibility="{Binding SpeedText, Converter={StaticResource StringToVisibilityConverter}}"/>
                                             </StackPanel>
@@ -385,47 +400,47 @@
                     MouseLeftButtonDown="ConfirmOverlayBg_Click">
                 <Border x:Name="ConfirmCard"
                         CornerRadius="16"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
                         Width="420"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Effect="{StaticResource CardShadow}">
+                        Effect="{DynamicResource CardShadow}">
                     <Border.RenderTransform>
                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                     </Border.RenderTransform>
                     <StackPanel Margin="32">
                         <TextBlock Text="🚀 一键部署全部"
                                    FontSize="20" FontWeight="Bold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="将依次执行以下操作："
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,12"/>
-                        <Border CornerRadius="8" Background="{StaticResource CardAccentBrush}" Padding="16" Margin="0,0,0,20">
+                        <Border CornerRadius="8" Background="{DynamicResource CardAccentBrush}" Padding="16" Margin="0,0,0,20">
                             <StackPanel>
                                 <TextBlock Text="📦 便携应用 — 下载并部署到 C:\"
-                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock Text="🔗 快捷方式 — 复制到桌面"
-                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock Text="⬇ 全部安装版软件 — 逐个下载安装"
-                                           FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}"/>
                             </StackPanel>
                         </Border>
                         <TextBlock x:Name="ConfirmWarningText"
-                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap" Margin="0,0,0,16"
                                    TextAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Button Content="取消"
                                     Width="110" Height="38"
                                     FontSize="13"
-                                    Style="{StaticResource SecondaryButton}"
+                                    Style="{DynamicResource SecondaryButton}"
                                     Margin="0,0,16,0"
                                     Click="ConfirmCancelBtn_Click"/>
                             <Button Content="✅ 确认部署"
                                     Width="130" Height="38"
                                     FontSize="13"
-                                    Style="{StaticResource PrimaryButton}"
+                                    Style="{DynamicResource PrimaryButton}"
                                     Click="ConfirmStartBtn_Click"/>
                         </StackPanel>
                     </StackPanel>
@@ -437,28 +452,28 @@
         <controls:StatusBar x:Name="StatusBar" Grid.Row="3" Margin="24,4"/>
 
         <!-- ========== 底部操作栏 ========== -->
-        <Border Grid.Row="4" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="4" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="24,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="SelectAllBtn"
                             Content="全选 ☐"
-                            Style="{StaticResource SecondaryButton}"
+                            Style="{DynamicResource SecondaryButton}"
                             Margin="0,0,8,0"
                             Click="SelectAllBtn_Click"/>
                     <Button x:Name="DeployAllBtn"
                             Content="🚀 一键部署全部"
-                            Style="{StaticResource PrimaryButton}"
+                            Style="{DynamicResource DeployBlinkPrimaryButton}"
                             Margin="8,0,12,0"
                             Click="DeployAllBtn_Click"/>
                     <TextBlock Text="{Binding SelectedCountText}"
                                FontSize="13"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button x:Name="InstallSelectedBtn"
                             Content="⬇ 一键安装已选"
-                            Style="{StaticResource PrimaryButton}"
+                            Style="{DynamicResource DeployBlinkPrimaryButton}"
                             VerticalAlignment="Center"
                             Click="InstallSelectedBtn_Click"/>
                 </StackPanel>

@@ -26,15 +26,17 @@ public partial class StatusBar : UserControl
     private string _persistentText = "";
 
     // ── 预创建画刷 ──
-    private static readonly SolidColorBrush PreparingBg = new(Color.FromRgb(0xE0, 0xE0, 0xE0));
     private static readonly SolidColorBrush WorkingBg = new(Color.FromRgb(0xE5, 0x39, 0x35));
     private static readonly SolidColorBrush SuccessBg = new(Color.FromRgb(0x4C, 0xAF, 0x50));
     private static readonly SolidColorBrush ErrorBgSolid = new(Color.FromRgb(0xE5, 0x39, 0x35));
     private static readonly SolidColorBrush PartialErrorBg = new(Color.FromRgb(0xFF, 0xC1, 0x07));
-    private static readonly SolidColorBrush PersistentBg = new(Color.FromRgb(0xE8, 0xE8, 0xE8));
-    private static readonly SolidColorBrush DarkTextBrush = new(Color.FromRgb(0x3D, 0x3D, 0x3D));
     private static readonly Color ReadyColor1 = Color.FromRgb(0xE0, 0xE0, 0xE0);
     private static readonly Color ReadyColor2 = Color.FromRgb(0x81, 0xC7, 0x84);
+
+    // ── 主题跟随画刷（懒加载，确保在 Application 初始化后访问）──
+    private static Brush PreparingBg => (Brush)Application.Current.FindResource("BorderLightBrush");
+    private static Brush PersistentBg => (Brush)Application.Current.FindResource("CardAccentBrush");
+    private static Brush DarkTextBrush => (Brush)Application.Current.FindResource("TextPrimaryBrush");
 
     public StatusBar()
     {
@@ -189,11 +191,11 @@ public partial class StatusBar : UserControl
             fadeOut.Completed += (_, _) =>
             {
                 StopPulse();
-                if (StatusBorder.Background is SolidColorBrush scb)
+                if (StatusBorder.Background is SolidColorBrush scb && PersistentBg is SolidColorBrush psb)
                 {
                     var colorAnim = new ColorAnimation(
                         scb.Color,
-                        PersistentBg.Color,
+                        psb.Color,
                         TimeSpan.FromMilliseconds(200))
                     { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
                     StatusBorder.Background.BeginAnimation(SolidColorBrush.ColorProperty, colorAnim);

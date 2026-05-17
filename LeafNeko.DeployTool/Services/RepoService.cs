@@ -67,7 +67,7 @@ public class RepoService
         }, fileName);
     }
 
-    private static async Task<T> RetryAsync<T>(Func<Task<T>> action, string fileName, int maxRetries = 3)
+    private static async Task<T> RetryAsync<T>(Func<Task<T>> action, string fileName, CancellationToken ct = default, int maxRetries = 3)
     {
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -79,7 +79,7 @@ public class RepoService
             {
                 await DelayRetry(attempt, fileName, "HTTP错误");
             }
-            catch (TaskCanceledException) when (attempt < maxRetries)
+            catch (TaskCanceledException) when (attempt < maxRetries && !ct.IsCancellationRequested)
             {
                 await DelayRetry(attempt, fileName, "超时");
             }
@@ -91,7 +91,7 @@ public class RepoService
         return await action();
     }
 
-    private static async Task RetryAsync(Func<Task> action, string fileName, int maxRetries = 3)
+    private static async Task RetryAsync(Func<Task> action, string fileName, CancellationToken ct = default, int maxRetries = 3)
     {
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -104,7 +104,7 @@ public class RepoService
             {
                 await DelayRetry(attempt, fileName, "HTTP错误");
             }
-            catch (TaskCanceledException) when (attempt < maxRetries)
+            catch (TaskCanceledException) when (attempt < maxRetries && !ct.IsCancellationRequested)
             {
                 await DelayRetry(attempt, fileName, "超时");
             }
@@ -170,7 +170,23 @@ public class RepoService
                     speedCallback.Report(FormatSpeedInfo(totalRead, totalBytes, sw.Elapsed));
                 }
             }
-        }, destPath);
+        }, destPath, ct);
+    }
+
+    /// <summary>快速验证 ZIP 文件 PK 头</summary>
+    public static bool IsValidZip(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath)) return false;
+            var info = new FileInfo(filePath);
+            if (info.Length < 4) return false;
+            var header = new byte[4];
+            using var fs = File.OpenRead(filePath);
+            fs.ReadExactly(header, 0, 4);
+            return header[0] == 0x50 && header[1] == 0x4B;
+        }
+        catch { return false; }
     }
 
     public static string FormatSpeedInfo(long bytesRead, long totalBytes, TimeSpan elapsed)

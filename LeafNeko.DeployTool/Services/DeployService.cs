@@ -76,6 +76,16 @@ public class DeployService
                 speedCallback,
                 ct);
 
+            // 验证下载的 ZIP 完整性
+            if (!RepoService.IsValidZip(downloadPath))
+            {
+                deployTask.PhaseText = $"({i + 1}/{links.Count}) 下载损坏: {fileName}";
+                deployTask.Status = Models.DeployTaskStatus.Error;
+                Trace.WriteLine($"[DeployService] ZIP 损坏: {downloadPath}");
+                try { File.Delete(downloadPath); } catch { }
+                continue;
+            }
+
             // 阶段 1: 解压
             deployTask.PhaseText = $"({i + 1}/{links.Count}) 解压: {fileName}";
             var extractDir = Path.Combine(PathHelper.ExtractDir, $"extract_{i}");
@@ -150,6 +160,9 @@ public class DeployService
 
         var tempZip = Path.Combine(PathHelper.ShortcutsDir, "shortcuts.zip");
         await File.WriteAllBytesAsync(tempZip, data);
+
+        if (!RepoService.IsValidZip(tempZip))
+            throw new InvalidOperationException("下载的快捷方式包已损坏，请重试。");
 
         var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         await ExtractZipWithProgressAsync(tempZip, desktopPath,
@@ -372,6 +385,15 @@ public class DeployService
     /// </summary>
     private static Encoding DetectZipEncoding(string zipPath)
     {
+        // 快速验证 ZIP 头
+        {
+            var header = new byte[4];
+            using var hdrFs = File.OpenRead(zipPath);
+            hdrFs.ReadExactly(header, 0, 4);
+            if (header[0] != 0x50 || header[1] != 0x4B)
+                throw new InvalidOperationException($"文件不是有效的 ZIP 包: {zipPath}");
+        }
+
         try
         {
             using var fs = File.OpenRead(zipPath);
@@ -385,7 +407,11 @@ public class DeployService
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[DeployService] ZIP编码检测失败: {ex.Message}");
+            throw new InvalidOperationException($"ZIP 文件无效或已损坏: {zipPath}", ex);
+        }
         return Encoding.UTF8;
     }
 

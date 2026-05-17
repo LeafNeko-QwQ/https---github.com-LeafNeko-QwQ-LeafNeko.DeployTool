@@ -148,6 +148,7 @@ public partial class MainWindow : Window
     private void DarkModeToggle_Click(object sender, MouseButtonEventArgs e)
     {
         App.ToggleTheme();
+        SoundService.PlayBindDone();
         if (sender is TextBlock tb)
             tb.Text = App.IsDarkMode ? "☀" : "🌙";
     }
@@ -204,6 +205,7 @@ public partial class MainWindow : Window
 
     private void SelectAllBtn_Click(object sender, RoutedEventArgs e)
     {
+        SoundService.PlayBindDone();
         AppCard.SuppressSelectionPulse = true;
         _viewModel.ToggleSelectAll();
         UpdateSelectAllButton();
@@ -213,6 +215,7 @@ public partial class MainWindow : Window
 
     private void CheckVersionBtn_Click(object sender, RoutedEventArgs e)
     {
+        SoundService.PlayBindDone();
         _viewModel.CheckVersions();
     }
 
@@ -223,6 +226,7 @@ public partial class MainWindow : Window
     private async void DeployPortableBtn_Click(object sender, RoutedEventArgs e)
     {
         DeployPortableBtn.IsEnabled = false;
+        _viewModel.IsDeploying = true;
         _viewModel.ProgressStatus = "正在获取便携应用清单...";
 
         try
@@ -271,11 +275,13 @@ public partial class MainWindow : Window
             _viewModel.ActiveTasks.Add(deployTask);
 
             StatusBar.Show("正在部署便携应用...", StatusBarState.Working);
+            SoundService.PlayBindDone();
 
             Func<string, Task<bool>> overwriteCallback = async folderName =>
             {
                 return await Dispatcher.InvokeAsync(() =>
                 {
+                    SoundService.PlayIcechime();
                     var dialog = new ConfirmDialog(
                         $"文件夹 \"{folderName}\" 已存在于 C 盘根目录，是否覆盖？\n\n选择「是」覆盖已有文件，「否」跳过该文件夹。",
                         "覆盖确认") { Owner = this };
@@ -306,6 +312,7 @@ public partial class MainWindow : Window
             _viewModel.ProgressStatus = "就绪，等待操作";
             SetAllButtonsEnabled(true);
             DeployPortableBtn.IsEnabled = true;
+            _viewModel.IsDeploying = false;
         }
     }
 
@@ -316,11 +323,13 @@ public partial class MainWindow : Window
     private async void DeployShortcutsBtn_Click(object sender, RoutedEventArgs e)
     {
         DeployShortcutsBtn.IsEnabled = false;
+        _viewModel.IsDeploying = true;
         _viewModel.ProgressStatus = "正在部署快捷方式...";
         _viewModel.ActiveTasks.Clear();
 
         var task = new DeployTask { Name = "快捷方式部署", PhaseText = "下载中..." };
         _viewModel.ActiveTasks.Add(task);
+        SoundService.PlayBindDone();
 
         try
         {
@@ -348,6 +357,7 @@ public partial class MainWindow : Window
             _viewModel.ActiveTasks.Clear();
             _viewModel.ProgressStatus = "就绪，等待操作";
             DeployShortcutsBtn.IsEnabled = true;
+            _viewModel.IsDeploying = false;
         }
     }
 
@@ -365,6 +375,7 @@ public partial class MainWindow : Window
         }
 
         SetAllButtonsEnabled(false);
+        _viewModel.IsDeploying = true;
         _viewModel.ActiveTasks.Clear();
 
         var workItems = selected.Select(app => (
@@ -432,6 +443,7 @@ public partial class MainWindow : Window
             _viewModel.UpdateSelectionCount();
             UpdateSelectAllButton();
             SetAllButtonsEnabled(true);
+            _viewModel.IsDeploying = false;
         }
     }
 
@@ -450,8 +462,10 @@ public partial class MainWindow : Window
         }
 
         SetAllButtonsEnabled(false);
+        _viewModel.IsDeploying = true;
         _viewModel.ProgressStatus = "正在并行部署全部...";
         StatusBar.Show("正在一键部署全部...", StatusBarState.Working);
+        SoundService.PlayBindDone();
 
         var progressWindow = new DeployProgressWindow { Owner = this };
 
@@ -555,6 +569,28 @@ public partial class MainWindow : Window
             {
                 _viewModel.ProgressStatus = "部署已取消";
                 StatusBar.Show("部署已取消", StatusBarState.PartialError, autoHideMs: 3000);
+
+                // 更新任务阶段：已完成→已完成，未完成→已取消，清空进度值
+                _viewModel.ActiveTasks.Clear();
+                foreach (var t in progressWindow.Tasks)
+                {
+                    if (t.Status == DeployTaskStatus.Completed)
+                    {
+                        t.PhaseText = "已完成";
+                    }
+                    else
+                    {
+                        t.PhaseText = "已取消";
+                        t.OverallProgress = 0;
+                        t.DownloadProgress = 0;
+                        t.ExtractProgress = 0;
+                        t.SpeedText = "";
+                    }
+                    _viewModel.ActiveTasks.Add(t);
+                }
+
+                // 启动 5 秒倒计时后清空
+                _ = StartCancelCountdownAsync();
             }
             else
             {
@@ -583,7 +619,11 @@ public partial class MainWindow : Window
             _viewModel.UpdateSelectionCount();
             Dispatcher.Invoke(() => UpdateSelectAllButton());
             _viewModel.ProgressStatus = "就绪，等待操作";
+            _viewModel.IsDeploying = false;
             SetAllButtonsEnabled(true);
+
+            if (!progressWindow.IsCancelled)
+                _viewModel.ActiveTasks.Clear();
         }
     }
 
@@ -750,6 +790,23 @@ public partial class MainWindow : Window
             vm.ErrorMessage = ex.Message;
             StatusBar.Show($"{vm.Name} 重试失败: {ex.Message}", StatusBarState.Error, autoHideMs: 5000);
         }
+    }
+
+    private async Task StartCancelCountdownAsync()
+    {
+        _viewModel.CancelCountdown = 100;
+        _viewModel.CancelCountdownText = "5 秒后清除...";
+
+        for (var i = 5; i > 0; i--)
+        {
+            await Task.Delay(1000);
+            _viewModel.CancelCountdown = (i - 1) * 20;
+            _viewModel.CancelCountdownText = $"{i - 1} 秒后清除...";
+        }
+
+        _viewModel.CancelCountdown = 0;
+        _viewModel.CancelCountdownText = "";
+        _viewModel.ActiveTasks.Clear();
     }
 
     #endregion

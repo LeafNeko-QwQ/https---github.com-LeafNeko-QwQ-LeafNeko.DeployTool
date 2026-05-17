@@ -147,6 +147,20 @@ public partial class DeployProgressWindow : Window, INotifyPropertyChanged
         Cts.Cancel();
         CancelBtn.IsEnabled = false;
         CancelBtn.Content = "已取消";
+
+        foreach (var task in Tasks)
+        {
+            if (task.Status == DeployTaskStatus.Completed)
+                task.PhaseText = "已完成";
+            else
+            {
+                task.PhaseText = "已取消";
+                task.OverallProgress = 0;
+                task.DownloadProgress = 0;
+                task.ExtractProgress = 0;
+                task.SpeedText = "";
+            }
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

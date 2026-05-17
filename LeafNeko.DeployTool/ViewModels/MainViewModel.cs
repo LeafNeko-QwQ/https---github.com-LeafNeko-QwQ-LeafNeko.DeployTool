@@ -31,6 +31,27 @@ public class MainViewModel : INotifyPropertyChanged
     private double _extractProgress;
     private double _copyProgress;
 
+    private double _cancelCountdown;
+    public double CancelCountdown
+    {
+        get => _cancelCountdown;
+        set { _cancelCountdown = value; OnPropertyChanged(); }
+    }
+
+    private string _cancelCountdownText = "";
+    public string CancelCountdownText
+    {
+        get => _cancelCountdownText;
+        set { _cancelCountdownText = value; OnPropertyChanged(); }
+    }
+
+    private bool _isDeploying;
+    public bool IsDeploying
+    {
+        get => _isDeploying;
+        set { _isDeploying = value; OnPropertyChanged(); }
+    }
+
     private readonly RepoService _repo = new();
     private readonly ManifestService _manifest = new();
     private readonly VersionService _version = new();
