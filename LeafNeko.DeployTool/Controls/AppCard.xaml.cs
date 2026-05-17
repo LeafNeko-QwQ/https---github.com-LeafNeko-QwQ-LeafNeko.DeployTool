@@ -67,9 +67,71 @@ public partial class AppCard : UserControl
     private static DispatcherTimer? _longPressTimer;
     private static AppCard? _longPressOrigin;
     private static Point _longPressStartPos;
+    private static HashSet<AppCard>? _pendingMultiSelectCards;
+
+    // ── 分类快速入场（延迟缩到 15ms/卡，持续时间 250ms）──
+    public static bool UseFastEntrance { get; set; }
+
+    // ── 选中脉冲抑制（全选时跳过脉冲避免大量动画并发）──
+    public static bool SuppressSelectionPulse { get; set; }
+
+    // ── 分类切换跳过入场动画 ──
+    public static bool SkipEntranceAnimation { get; set; }
 
     // ── 重试事件（静态，MainWindow 订阅一次即可处理所有卡片）──
     public static event Action<AppItemViewModel>? RetryRequested;
+
+    // ── 动画模板 — 预创建关键帧结构，每次调用 Clone() 复用（远快于 new + 逐个 Add KeyFrame）──
+    private static readonly DoubleAnimationUsingKeyFrames BounceTemplate = CreateBounceTemplate();
+    private static readonly DoubleAnimationUsingKeyFrames PulseTemplate = CreatePulseTemplate();
+    private static readonly DoubleAnimationUsingKeyFrames SkewWaveTemplate = CreateSkewWaveTemplate();
+    private static readonly DoubleAnimationUsingKeyFrames TransWaveTemplate = CreateTransWaveTemplate();
+    private static readonly DoubleAnimation EntranceScaleTemplate = new(0.82, 1.0, TimeSpan.FromMilliseconds(480))
+    {
+        EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut }
+    };
+    private static readonly DoubleAnimation EntranceFadeTemplate = new(0, 1, TimeSpan.FromMilliseconds(350))
+    {
+        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+    };
+
+    private static DoubleAnimationUsingKeyFrames CreateBounceTemplate()
+    {
+        var a = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(420) };
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0.88, TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(1.07, TimeSpan.FromMilliseconds(140), new KeySpline(0, 0, 0.5, 1)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0.97, TimeSpan.FromMilliseconds(270), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, TimeSpan.FromMilliseconds(420), new KeySpline(0.2, 0, 0.4, 1)));
+        return a;
+    }
+
+    private static DoubleAnimationUsingKeyFrames CreatePulseTemplate()
+    {
+        var a = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(350) };
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(1.05, TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, TimeSpan.FromMilliseconds(180), new KeySpline(0, 0, 0.5, 1)));
+        return a;
+    }
+
+    private static DoubleAnimationUsingKeyFrames CreateSkewWaveTemplate()
+    {
+        var a = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(500) };
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0, TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(6, TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(-3, TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0, TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+        return a;
+    }
+
+    private static DoubleAnimationUsingKeyFrames CreateTransWaveTemplate()
+    {
+        var a = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(500) };
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0, TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(-4, TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(2, TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
+        a.KeyFrames.Add(new SplineDoubleKeyFrame(0, TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+        return a;
+    }
 
     public AppCard()
     {
@@ -99,28 +161,31 @@ public partial class AppCard : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        var delay = Interlocked.Increment(ref _entranceCounter) * 60;
-
-        var entrance = new DoubleAnimation
+        if (SkipEntranceAnimation)
         {
-            From = 0.82,
-            To = 1.0,
-            Duration = TimeSpan.FromMilliseconds(480),
-            BeginTime = TimeSpan.FromMilliseconds(delay),
-            EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut }
-        };
-        ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, entrance);
-        ScaleContainer.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, entrance);
-
-        var fadeIn = new DoubleAnimation
+            var st = (ScaleTransform)ScaleContainer.RenderTransform;
+            st.ScaleX = 1.0;
+            st.ScaleY = 1.0;
+            Opacity = 1;
+        }
+        else
         {
-            From = 0,
-            To = 1,
-            Duration = TimeSpan.FromMilliseconds(350),
-            BeginTime = TimeSpan.FromMilliseconds(delay),
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-        BeginAnimation(OpacityProperty, fadeIn);
+            var cardDelay = UseFastEntrance ? 15 : 60;
+            var duration = UseFastEntrance ? 250 : 480;
+            var delay = Interlocked.Increment(ref _entranceCounter) * cardDelay;
+
+            var entrance = EntranceScaleTemplate.Clone();
+            entrance.Duration = TimeSpan.FromMilliseconds(duration);
+            entrance.BeginTime = TimeSpan.FromMilliseconds(delay);
+            var st = (ScaleTransform)ScaleContainer.RenderTransform;
+            st.BeginAnimation(ScaleTransform.ScaleXProperty, entrance);
+            st.BeginAnimation(ScaleTransform.ScaleYProperty, entrance);
+
+            var fadeIn = EntranceFadeTemplate.Clone();
+            fadeIn.Duration = TimeSpan.FromMilliseconds(duration * 0.7);
+            fadeIn.BeginTime = TimeSpan.FromMilliseconds(delay);
+            BeginAnimation(OpacityProperty, fadeIn);
+        }
 
         StartGameLoop();
     }
@@ -155,12 +220,9 @@ public partial class AppCard : UserControl
 
     private void StartSelectionPulse()
     {
-        var pulse = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(350) };
-        pulse.KeyFrames.Add(new SplineDoubleKeyFrame(1.05,
-            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
-        pulse.KeyFrames.Add(new SplineDoubleKeyFrame(1.0,
-            TimeSpan.FromMilliseconds(180), new KeySpline(0, 0, 0.5, 1)));
+        if (SuppressSelectionPulse) return;
 
+        var pulse = PulseTemplate.Clone();
         var scaleTransform = (ScaleTransform)ScaleContainer.RenderTransform;
         scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
         scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
@@ -174,16 +236,16 @@ public partial class AppCard : UserControl
     {
         if (_isRunning) return;
         _isRunning = true;
-        CompositionTarget.Rendering += OnFrame;
+        AnimationDriver.Register(this);
     }
 
     private void StopGameLoop()
     {
         _isRunning = false;
-        CompositionTarget.Rendering -= OnFrame;
+        AnimationDriver.Unregister(this);
     }
 
-    private void OnFrame(object? sender, EventArgs e)
+    internal void Tick()
     {
         if (_isBouncing) return;
 
@@ -283,6 +345,14 @@ public partial class AppCard : UserControl
 
         _longPressStartPos = e.GetPosition(null);
 
+        // 长按进度动画：1.0 → 0.93，800ms 缓慢压入
+        var pressAnim = new DoubleAnimation(1.0, 0.93, TimeSpan.FromMilliseconds(800))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+        _scale.BeginAnimation(ScaleTransform.ScaleXProperty, pressAnim);
+        _scale.BeginAnimation(ScaleTransform.ScaleYProperty, pressAnim);
+
         // 启动长按计时器
         CancelLongPressTimer();
         _longPressOrigin = this;
@@ -296,21 +366,30 @@ public partial class AppCard : UserControl
         if (IsCheckBoxSource(e.OriginalSource as DependencyObject))
             return;
 
-        var wasLongPress = _isMultiSelectActive;
         CancelLongPressTimer();
 
-        if (_isMultiSelectActive)
+        // 长按未完成，弹回 1.0
+        if (!_isMultiSelectActive)
         {
-            _isMultiSelectActive = false;
-            return;
+            var springBack = new DoubleAnimation(_scale.ScaleX, 1.0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            springBack.Completed += (_, _) => { _scale.ScaleX = 1.0; _scale.ScaleY = 1.0; };
+            _scale.BeginAnimation(ScaleTransform.ScaleXProperty, springBack);
+            _scale.BeginAnimation(ScaleTransform.ScaleYProperty, springBack);
         }
 
-        // 正常点击
-        if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
+        // 正常点击（非多选模式）
+        if (!_isMultiSelectActive)
         {
-            vm.IsSelected = !vm.IsSelected;
-            StartBounce();
+            if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
+            {
+                vm.IsSelected = !vm.IsSelected;
+                StartBounce();
+            }
         }
+        // 注意：多选模式下的退出由 MainWindow 全局 PreviewMouseLeftButtonUp 统一处理
     }
 
     private static void OnLongPressTick(object? sender, EventArgs e)
@@ -318,11 +397,44 @@ public partial class AppCard : UserControl
         CancelLongPressTimer();
         _isMultiSelectActive = true;
 
-        if (_longPressOrigin is { } origin && origin.DataContext is AppItemViewModel vm && !vm.IsProcessing)
+        // 长按成功：弹回 1.0 + 脉冲
+        if (_longPressOrigin is { } origin)
         {
-            vm.IsSelected = !vm.IsSelected;
-            origin.StartBounce();
+            var snapBack = new DoubleAnimation(0.93, 1.0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new BackEase { Amplitude = 0.3, EasingMode = EasingMode.EaseOut }
+            };
+            origin._scale.BeginAnimation(ScaleTransform.ScaleXProperty, snapBack);
+            origin._scale.BeginAnimation(ScaleTransform.ScaleYProperty, snapBack);
+
+            if (origin.DataContext is AppItemViewModel vm && !vm.IsProcessing)
+            {
+                vm.IsSelected = !vm.IsSelected;
+                origin.StartBounce();
+            }
         }
+
+        // 批量处理计时器期间鼠标经过的卡片
+        if (_pendingMultiSelectCards is { } pending)
+        {
+            foreach (var card in pending)
+            {
+                if (card.DataContext is AppItemViewModel vm && !vm.IsProcessing)
+                {
+                    vm.IsSelected = !vm.IsSelected;
+                    card.StartBounce();
+                }
+            }
+            _pendingMultiSelectCards.Clear();
+            _pendingMultiSelectCards = null;
+        }
+    }
+
+    internal static bool IsMultiSelectActive => _isMultiSelectActive;
+
+    internal static void ExitMultiSelect()
+    {
+        _isMultiSelectActive = false;
     }
 
     private static void CancelLongPressTimer()
@@ -332,10 +444,20 @@ public partial class AppCard : UserControl
             _longPressTimer.Stop();
             _longPressTimer = null;
         }
+        _pendingMultiSelectCards?.Clear();
+        _pendingMultiSelectCards = null;
     }
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
+        // 长按计时器运行中，记录进入的卡片，计时器触发后批量处理
+        if (_longPressTimer != null && _longPressOrigin != this)
+        {
+            _pendingMultiSelectCards ??= new();
+            _pendingMultiSelectCards.Add(this);
+            return;
+        }
+
         if (!_isMultiSelectActive || _longPressOrigin == this) return;
 
         if (DataContext is AppItemViewModel vm && !vm.IsProcessing)
@@ -360,20 +482,7 @@ public partial class AppCard : UserControl
         if (_isBouncing) return;
         _isBouncing = true;
 
-        var bounce = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(420) };
-        // 0ms: 压入
-        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(0.88,
-            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
-        // 140ms: 过冲
-        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(1.07,
-            TimeSpan.FromMilliseconds(140), new KeySpline(0, 0, 0.5, 1)));
-        // 280ms: 回弹
-        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(0.97,
-            TimeSpan.FromMilliseconds(270), new KeySpline(0.5, 0, 1, 0.5)));
-        // 420ms: 静止
-        bounce.KeyFrames.Add(new SplineDoubleKeyFrame(1.0,
-            TimeSpan.FromMilliseconds(420), new KeySpline(0.2, 0, 0.4, 1)));
-
+        var bounce = BounceTemplate.Clone();
         bounce.Completed += (_, _) =>
         {
             _isBouncing = false;
@@ -402,33 +511,11 @@ public partial class AppCard : UserControl
     {
         var delay = index * 40;
 
-        var skewAnim = new DoubleAnimationUsingKeyFrames
-        {
-            Duration = TimeSpan.FromMilliseconds(500),
-            BeginTime = TimeSpan.FromMilliseconds(delay)
-        };
-        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
-            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
-        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(6,
-            TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
-        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-3,
-            TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
-        skewAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
-            TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+        var skewAnim = SkewWaveTemplate.Clone();
+        skewAnim.BeginTime = TimeSpan.FromMilliseconds(delay);
 
-        var transAnim = new DoubleAnimationUsingKeyFrames
-        {
-            Duration = TimeSpan.FromMilliseconds(500),
-            BeginTime = TimeSpan.FromMilliseconds(delay)
-        };
-        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
-            TimeSpan.FromMilliseconds(0), new KeySpline(0.5, 0, 1, 0.5)));
-        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-4,
-            TimeSpan.FromMilliseconds(120), new KeySpline(0, 0, 0.5, 1)));
-        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(2,
-            TimeSpan.FromMilliseconds(250), new KeySpline(0.5, 0, 1, 0.5)));
-        transAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0,
-            TimeSpan.FromMilliseconds(380), new KeySpline(0, 0, 0.5, 1)));
+        var transAnim = TransWaveTemplate.Clone();
+        transAnim.BeginTime = TimeSpan.FromMilliseconds(delay);
 
         _skew.BeginAnimation(SkewTransform.AngleXProperty, skewAnim);
         _translate.BeginAnimation(TranslateTransform.YProperty, transAnim);

@@ -6,11 +6,11 @@
     <conv:ProgressToVisibilityConverter x:Key="ProgressToVisibilityConverter"/>
 
     <!-- 暗色主题配色 -->
-    <Color x:Key="PrimaryColor">#E8919E</Color>
-    <Color x:Key="PrimaryLightColor">#F0A5B0</Color>
-    <Color x:Key="PrimaryDarkColor">#D47888</Color>
+    <Color x:Key="PrimaryColor">#C57A88</Color>
+    <Color x:Key="PrimaryLightColor">#D48A96</Color>
+    <Color x:Key="PrimaryDarkColor">#B06A78</Color>
     <Color x:Key="BackgroundColor">#1E1E2E</Color>
-    <Color x:Key="CardBackgroundColor">#2B2B3D</Color>
+    <Color x:Key="CardBackgroundColor">#252535</Color>
     <Color x:Key="TextPrimaryColor">#E8E8EC</Color>
     <Color x:Key="TextSecondaryColor">#9090A0</Color>
     <Color x:Key="SuccessColor">#66BB6A</Color>
@@ -29,7 +29,7 @@
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
     <SolidColorBrush x:Key="BorderLightBrush" Color="{StaticResource BorderLightColor}"/>
-    <SolidColorBrush x:Key="CardAccentBrush" Color="#323248"/>
+    <SolidColorBrush x:Key="CardAccentBrush" Color="#2A2A3C"/>
 
     <!-- 全局样式 -->
     <Style TargetType="Window">

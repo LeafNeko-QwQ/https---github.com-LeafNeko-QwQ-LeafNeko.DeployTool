@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 using LeafNeko.DeployTool.Helpers;
@@ -51,6 +52,9 @@ public partial class App : Application
         };
 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        // 初始化文件日志 — 所有 Trace.WriteLine 自动写入日志文件
+        SetupFileLogging();
 
         var config = DeployConfig.Load();
 
@@ -127,6 +131,26 @@ public partial class App : Application
     {
         _trayIcon?.Dispose();
         _trayIcon = null;
+        Trace.WriteLine($"[App] 应用退出 — {DateTime.Now}");
+        Trace.Flush();
         base.OnExit(e);
+    }
+
+    private static void SetupFileLogging()
+    {
+        try
+        {
+            PathHelper.EnsureAll();
+            var logFile = Path.Combine(PathHelper.LogsDir, $"deploytool_{DateTime.Now:yyyyMMdd}.log");
+            var listener = new TextWriterTraceListener(logFile, "FileLogger");
+            Trace.Listeners.Add(listener);
+            Trace.AutoFlush = true;
+            Trace.WriteLine($"[App] 日志已启动 — {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            PathHelper.CleanOldLogs(7);
+        }
+        catch
+        {
+            // 日志初始化失败不阻塞启动
+        }
     }
 }

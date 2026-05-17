@@ -17,6 +17,7 @@ public static class PathHelper
     public static string DownloadsDir => Path.Combine(BaseDir, "downloads");
     public static string ExtractDir => Path.Combine(BaseDir, "extract");
     public static string ShortcutsDir => Path.Combine(BaseDir, "shortcuts");
+    public static string LogsDir => Path.Combine(BaseDir, "logs");
 
     public static void EnsureAll()
     {
@@ -24,6 +25,7 @@ public static class PathHelper
         Directory.CreateDirectory(DownloadsDir);
         Directory.CreateDirectory(ExtractDir);
         Directory.CreateDirectory(ShortcutsDir);
+        Directory.CreateDirectory(LogsDir);
     }
 
     /// <summary>
@@ -71,6 +73,27 @@ public static class PathHelper
         catch (Exception ex)
         {
             Trace.WriteLine($"[PathHelper] 删除异常: {ex.Message}");
+        }
+    }
+
+    public static void CleanOldLogs(int keepDays = 7)
+    {
+        try
+        {
+            if (!Directory.Exists(LogsDir)) return;
+            var cutoff = DateTime.Now.AddDays(-keepDays);
+            foreach (var file in Directory.GetFiles(LogsDir, "deploytool_*.log"))
+            {
+                if (File.GetLastWriteTime(file) < cutoff)
+                {
+                    File.Delete(file);
+                    Trace.WriteLine($"[PathHelper] 已删除旧日志: {file}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[PathHelper] 日志清理异常: {ex.Message}");
         }
     }
 }

@@ -30,6 +30,15 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         Loaded += OnLoaded;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // 全局鼠标释放 — 多选模式下任意位置松手退出多选
+        PreviewMouseLeftButtonUp += OnGlobalMouseLeftButtonUp;
+    }
+
+    private void OnGlobalMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (AppCard.IsMultiSelectActive)
+            AppCard.ExitMultiSelect();
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -52,6 +61,7 @@ public partial class MainWindow : Window
             _viewModel.SystemInfo.Refresh();
             await _viewModel.LoadAppsAsync();
             _viewModel.OverallProgress = 0;
+            StatusBar.SetPersistentText("准备就绪，等待操作");
             StatusBar.Show("清单已就绪", StatusBarState.Ready, autoHideMs: 3000);
             AppCard.RetryRequested += OnRetryAppRequested;
             _ = CheckSelfUpdateAsync();
@@ -60,8 +70,11 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Trace.WriteLine($"[MainWindow] OnLoaded 异常: {ex}");
-            MessageBox.Show($"软件加载失败: {ex.Message}\n\n请检查网络连接后重启应用。",
-                "启动错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusBar.Show($"软件加载失败: {ex.Message}", StatusBarState.Error, autoHideMs: 8000);
+            var errDialog = new ConfirmDialog(
+                $"软件加载失败: {ex.Message}\n\n请检查网络连接后重启应用。",
+                "启动错误", isYesNo: false) { Owner = this };
+            errDialog.ShowDialog();
         }
     }
 
@@ -80,10 +93,11 @@ public partial class MainWindow : Window
             {
                 Dispatcher.Invoke(() =>
                 {
-                    var result = MessageBox.Show(
+                    var dialog = new ConfirmDialog(
                         $"发现新版本 v{remoteVersion}！\n当前版本: v{localVersion}\n\n是否下载更新？",
-                        "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Information);
-                    if (result == MessageBoxResult.Yes)
+                        "发现新版本") { Owner = this };
+                    dialog.ShowDialog();
+                    if (dialog.IsConfirmed)
                         _ = DownloadAndApplyUpdateAsync(remoteVersion);
                 });
             }
@@ -111,10 +125,11 @@ public partial class MainWindow : Window
             _viewModel.OverallProgress = 100;
             _viewModel.ProgressStatus = "下载完成";
 
-            var result = MessageBox.Show(
+            var dialog = new ConfirmDialog(
                 $"新版本已下载到:\n{destPath}\n\n是否打开文件位置？",
-                "下载完成", MessageBoxButton.YesNo, MessageBoxImage.Information);
-            if (result == MessageBoxResult.Yes)
+                "下载完成") { Owner = this };
+            dialog.ShowDialog();
+            if (dialog.IsConfirmed)
                 Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{destPath}\"") { UseShellExecute = true });
         }
         catch (Exception ex)
@@ -141,6 +156,9 @@ public partial class MainWindow : Window
     {
         if (sender is Border border && border.Child is TextBlock tb && tb.DataContext is string category)
         {
+            // 分类切换时使用快速入场动画
+            AppCard.UseFastEntrance = true;
+
             _viewModel.SelectedCategory = category;
             SmoothScrollToTop();
 
@@ -155,6 +173,18 @@ public partial class MainWindow : Window
 
             _selectedTabBorder = border;
             _selectedTabText = tb;
+
+            // 300ms 后恢复入场动画（新卡片正常弹入）
+            var restoreTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            restoreTimer.Tick += (_, _) =>
+            {
+                AppCard.UseFastEntrance = false;
+                restoreTimer.Stop();
+            };
+            restoreTimer.Start();
         }
     }
 
@@ -174,9 +204,11 @@ public partial class MainWindow : Window
 
     private void SelectAllBtn_Click(object sender, RoutedEventArgs e)
     {
+        AppCard.SuppressSelectionPulse = true;
         _viewModel.ToggleSelectAll();
         UpdateSelectAllButton();
         PlaySelectAllAnimations();
+        AppCard.SuppressSelectionPulse = false;
     }
 
     private void CheckVersionBtn_Click(object sender, RoutedEventArgs e)
@@ -240,12 +272,16 @@ public partial class MainWindow : Window
 
             StatusBar.Show("正在部署便携应用...", StatusBarState.Working);
 
-            Func<string, Task<bool>> overwriteCallback = folderName =>
+            Func<string, Task<bool>> overwriteCallback = async folderName =>
             {
-                var result = MessageBox.Show(
-                    $"文件夹 \"{folderName}\" 已存在于 C 盘根目录，是否覆盖？\n\n选择「是」覆盖已有文件，「否」跳过该文件夹。",
-                    "覆盖确认", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                return Task.FromResult(result == MessageBoxResult.Yes);
+                return await Dispatcher.InvokeAsync(() =>
+                {
+                    var dialog = new ConfirmDialog(
+                        $"文件夹 \"{folderName}\" 已存在于 C 盘根目录，是否覆盖？\n\n选择「是」覆盖已有文件，「否」跳过该文件夹。",
+                        "覆盖确认") { Owner = this };
+                    dialog.ShowDialog();
+                    return dialog.IsConfirmed;
+                });
             };
 
             await _deployService.DeployPortableFromLinksAsync(

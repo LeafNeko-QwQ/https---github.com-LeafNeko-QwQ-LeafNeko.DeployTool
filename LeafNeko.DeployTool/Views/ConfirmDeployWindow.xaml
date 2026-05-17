@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="📦 便携应用部署确认"
         Icon="/Resources/logo.png"
-        Width="520" Height="700"
+        Width="520" Height="720"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" AllowsTransparency="True"
         ResizeMode="NoResize"
@@ -19,8 +19,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -47,10 +48,10 @@
                        Foreground="{StaticResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
-            <!-- 更新日志（可滚动） -->
+            <!-- 更新日志（可滚动，限制高度避免挤压） -->
             <Border Grid.Row="3" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
-                    Padding="12" Margin="0,0,0,12">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                    Padding="12" Margin="0,0,0,12" MaxHeight="100">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <TextBlock Text="{Binding UpdateLog}"
                                FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                TextWrapping="Wrap" LineHeight="20"/>
@@ -63,9 +64,9 @@
                        Foreground="{StaticResource TextPrimaryBrush}"
                        Margin="0,0,0,6"/>
 
-            <!-- 直链列表（可滚动） -->
+            <!-- 直链列表（占满剩余空间，不挤压按钮） -->
             <Border Grid.Row="5" CornerRadius="8" Background="{StaticResource CardAccentBrush}"
-                    Padding="12" Margin="0,0,0,16" MaxHeight="120">
+                    Padding="12" Margin="0,0,0,12">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Links}">
                         <ItemsControl.ItemTemplate>
@@ -81,7 +82,7 @@
             </Border>
 
             <!-- 按钮 -->
-            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
                 <Button Content="取消"
                         Width="120" Height="40"
                         FontSize="14"

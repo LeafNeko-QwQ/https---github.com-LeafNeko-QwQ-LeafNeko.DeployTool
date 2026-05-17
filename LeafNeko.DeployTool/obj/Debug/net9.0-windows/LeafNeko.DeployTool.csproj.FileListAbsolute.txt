@@ -33,3 +33,10 @@ H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Themes\DarkTheme.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Controls\StatusBar.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Controls\StatusBar.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\bin\Debug\net9.0-windows\assets\bind_done.wav
+H:\develop\DNBZ\LeafNeko.DeployTool\bin\Debug\net9.0-windows\assets\disable.wav
+H:\develop\DNBZ\LeafNeko.DeployTool\bin\Debug\net9.0-windows\assets\icechime.wav
+H:\develop\DNBZ\LeafNeko.DeployTool\bin\Debug\net9.0-windows\assets\sigma_disable.wav
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDialog.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDialog.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool_Content.g.cs

@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 H:\develop\DNBZ\LeafNeko.DeployTool\App.xaml
-83102968
-
-31-2088382295
+9-729065069
+4-54334161
+341787025700
 2001132932513
-Controls\AppCard.xaml;Controls\StatusBar.xaml;Themes\DarkTheme.xaml;Themes\PinkTheme.xaml;Views\ConfirmDeployWindow.xaml;Views\DeployProgressWindow.xaml;Views\LicenseWindow.xaml;Views\MainWindow.xaml;
+Controls\AppCard.xaml;Controls\StatusBar.xaml;Themes\DarkTheme.xaml;Themes\PinkTheme.xaml;Views\ConfirmDeployWindow.xaml;Views\ConfirmDialog.xaml;Views\DeployProgressWindow.xaml;Views\LicenseWindow.xaml;Views\MainWindow.xaml;
 
 False
 

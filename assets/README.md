@@ -1,0 +1,6 @@
+icechime.wav是注意(更严肃主要在许可条款)提示音
+disable.wav提醒提示音
+bind_done.wav展开提示音
+sigma_disable.wav报错提示音
+start.wav完成提示音
+这些提示音都存在当前目录的assets文件夹中

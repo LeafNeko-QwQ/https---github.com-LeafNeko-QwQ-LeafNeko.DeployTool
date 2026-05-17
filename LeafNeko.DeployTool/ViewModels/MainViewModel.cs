@@ -16,6 +16,7 @@ public class MainViewModel : INotifyPropertyChanged
         Assembly.GetExecutingAssembly().GetName().Version is Version v
             ? $"v{v.Major}.{v.Minor}.{v.Build}"
             : "v1.0.10";
+    private bool _batchUpdating;
     private string _selectedCategory = "全部";
     private string _progressStatus = "就绪，等待操作";
     private double _overallProgress;
@@ -70,7 +71,18 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void InitChangelog()
     {
-        ChangelogText = @"v1.0.11 — 2026-05-17
+        ChangelogText = @"v1.0.12 — 2026-05-17
+• 动画引擎重构：集中式游戏循环 (AnimationDriver)
+• 动画对象复用：预建模板 Clone() 替代重复 new
+• 批量选择优化：50 次遍历 → 1 次
+• 状态栏空闲常驻 + 消息间渐变过渡
+• 长按多选动画反馈 (压入→弹回→脉冲)
+• 右上角半圆重试按钮 + 移除勾选框
+• 夜间模式粉色饱和度降低
+• 文件日志系统 (桌面\装机助手临时目录\logs\)
+• 端口部署确认弹窗布局修复
+
+v1.0.11 — 2026-05-17
 • 状态栏替代系统弹窗（6 种状态动画）
 • 长按拖动多选 + 全选 3D 波浪动画
 • 卡片 3D 悬停效果增强
@@ -285,7 +297,7 @@ v1.0.0 — 2026-05-16
 
     private void OnAppItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
+        if (e.PropertyName == nameof(AppItemViewModel.IsSelected) && !_batchUpdating)
         {
             UpdateSelectionCount();
         }
@@ -313,16 +325,20 @@ v1.0.0 — 2026-05-16
 
     public void SelectAll()
     {
+        _batchUpdating = true;
         foreach (var app in FilteredApps)
             app.IsSelected = true;
+        _batchUpdating = false;
         UpdateSelectionCount();
         OnPropertyChanged(nameof(IsAllSelected));
     }
 
     public void DeselectAll()
     {
+        _batchUpdating = true;
         foreach (var app in FilteredApps)
             app.IsSelected = false;
+        _batchUpdating = false;
         UpdateSelectionCount();
         OnPropertyChanged(nameof(IsAllSelected));
     }

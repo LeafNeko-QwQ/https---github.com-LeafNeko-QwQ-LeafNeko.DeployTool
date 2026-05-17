@@ -125,26 +125,7 @@
                                        RenderOptions.ClearTypeHint="Enabled"
                                        Visibility="{Binding HasUpdateIndicator, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         </StackPanel>
-                        <CheckBox IsChecked="{Binding IsSelected}"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"
-                                  IsEnabled="{Binding IsProcessing, Converter={StaticResource InvertBoolConverter}}"/>
                     </Grid>
-
-                    <!-- 重试按钮 -->
-                    <Button Grid.Row="5" Content="🔄 重试"
-                            FontSize="11"
-                            Foreground="{StaticResource PrimaryBrush}"
-                            Background="Transparent"
-                            BorderBrush="{StaticResource PrimaryBrush}"
-                            BorderThickness="1"
-                            Cursor="Hand"
-                            HorizontalAlignment="Center"
-                            Margin="0,6,0,0"
-                            Padding="12,3"
-                            Style="{StaticResource {x:Type Button}}"
-                            Click="RetryBtn_Click"
-                            Visibility="{Binding IsRetryVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </Grid>
             </Border>
 
@@ -154,5 +135,76 @@
                     Opacity="0"
                     IsHitTestVisible="False"/>
         </Grid>
+
+        <!-- 右上角半圆重试按钮 -->
+        <Button Content="↻"
+                FontSize="16" FontWeight="Bold"
+                Foreground="#FFFFFF"
+                Width="36" Height="36"
+                HorizontalAlignment="Right" VerticalAlignment="Top"
+                Margin="0,4,4,0"
+                Cursor="Hand"
+                Panel.ZIndex="10"
+                Click="RetryBtn_Click"
+                ToolTip="重试安装"
+                Visibility="{Binding IsRetryVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border Name="RetryBg" CornerRadius="18"
+                            Background="{StaticResource PrimaryBrush}"
+                            BorderThickness="0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        </Border.RenderTransform>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="RetryBg"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="1.15" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="RetryBg"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="1.15" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="RetryBg"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="1" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="RetryBg"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="1" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
     </Grid>
 </UserControl>

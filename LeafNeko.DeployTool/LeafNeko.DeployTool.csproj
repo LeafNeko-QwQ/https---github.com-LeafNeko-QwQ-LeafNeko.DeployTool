@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>LeafNeko.DeployTool</AssemblyName>
-    <Version>1.0.11</Version>
+    <Version>1.0.12</Version>
     <ApplicationIcon>Resources\logo.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -22,6 +22,14 @@
 
   <ItemGroup>
     <Resource Include="Resources\logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\assets\*.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <Link>assets\%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
 
 </Project>

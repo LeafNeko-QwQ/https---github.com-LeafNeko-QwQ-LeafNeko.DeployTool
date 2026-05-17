@@ -4,7 +4,7 @@
              Height="40">
     <Border x:Name="StatusBorder" CornerRadius="10" Height="40"
             Background="{StaticResource CardAccentBrush}"
-            Opacity="0" Visibility="Collapsed">
+            Opacity="1" Visibility="Visible">
         <Grid>
             <ProgressBar x:Name="BgProgress" Height="40"
                          Minimum="0" Maximum="100"
