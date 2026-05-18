@@ -1,0 +1,6 @@
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\LeafNeko.DeployTool.pdb
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\assets\bind_done.wav
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\assets\disable.wav
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\assets\icechime.wav
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\assets\sigma_disable.wav
+C:\develop\project\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\publish\LeafNeko.DeployTool.exe

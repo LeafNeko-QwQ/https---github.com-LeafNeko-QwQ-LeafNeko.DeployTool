@@ -4,12 +4,12 @@
 winexe
 C#
 .cs
-H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\
+C:\develop\project\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\
 LeafNeko.DeployTool
 none
 false
 TRACE;RELEASE;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-H:\develop\DNBZ\LeafNeko.DeployTool\App.xaml
+C:\develop\project\DNBZ\LeafNeko.DeployTool\App.xaml
 10-1368680437
 4-54334161
 37-2008396138

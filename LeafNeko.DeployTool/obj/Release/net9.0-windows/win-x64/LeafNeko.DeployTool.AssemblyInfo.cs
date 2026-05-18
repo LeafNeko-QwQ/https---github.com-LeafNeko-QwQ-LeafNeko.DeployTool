@@ -12,11 +12,11 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("LeafNeko.DeployTool")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.14.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.14+97b6613eb8fb56d4413827c9125e71819dc08647")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.15.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.15+9b743336a30cfd46a42974fc64f57aa04f9fcfdf")]
 [assembly: System.Reflection.AssemblyProductAttribute("LeafNeko.DeployTool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LeafNeko.DeployTool")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.0.14.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.15.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]
 

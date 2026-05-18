@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Users/29177/AppData/Local/Microsoft/**)",
+      "Read(//c/Users/29177/**)",
+      "Read(//c//**)"
     ]
   }
 }
