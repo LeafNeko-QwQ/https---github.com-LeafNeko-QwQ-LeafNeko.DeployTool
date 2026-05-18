@@ -26,8 +26,10 @@ public static class LoggerService
         CurrentLogFile = Path.Combine(PathHelper.LogsDir, $"deploytool_{DateTime.Now:yyyyMMdd}.log");
 
         var header = FormatHeader();
-        File.AppendAllText(CurrentLogFile, header);
-        Trace.Listeners.Add(new TextWriterTraceListener(CurrentLogFile, "FileLogger"));
+        var fs = new FileStream(CurrentLogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+        var writer = new StreamWriter(fs) { AutoFlush = true };
+        writer.WriteLine(header);
+        Trace.Listeners.Add(new TextWriterTraceListener(writer, "FileLogger"));
         Trace.AutoFlush = true;
         Trace.WriteLine(header);
 
@@ -88,7 +90,7 @@ public static class LoggerService
             {
                 var info = new FileInfo(f);
                 totalSize += info.Length;
-                var lines = File.ReadAllLines(f).Length;
+                var lines = CountLinesSafe(f);
                 totalLines += lines;
                 var time = File.GetLastWriteTime(f);
                 sb.AppendLine($"  {Path.GetFileName(f)}  |  {FormatSize(info.Length)}  |  {lines} 行  |  {time:MM-dd HH:mm}");
@@ -154,6 +156,26 @@ public static class LoggerService
             $".NET: {dotnet}\n" +
             $"启动: {now}\n" +
             $"================================\n";
+    }
+
+    private static int CountLinesSafe(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            int count = 0;
+            while (reader.ReadLine() != null) count++;
+            return count;
+        }
+        catch { return 0; }
+    }
+
+    private static string ReadAllTextSafe(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(fs);
+        return reader.ReadToEnd();
     }
 
     private static string FormatSize(long bytes) =>

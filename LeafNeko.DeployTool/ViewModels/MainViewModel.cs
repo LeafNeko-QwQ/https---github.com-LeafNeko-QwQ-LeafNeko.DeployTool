@@ -92,7 +92,20 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void InitChangelog()
     {
-        ChangelogText = @"v1.0.13 — 2026-05-18
+        ChangelogText = @"v1.0.15 — 2026-05-19
+• 修复日志上传失败：TraceListener 文件锁冲突 → FileShare.ReadWrite
+• 修复日志摘要读取失败：文件行数统计改用共享读模式
+• 修复云端仓库 404：Raw URL 分支 main → master
+• 修复自更新检查 404：与仓库测速使用同一 BaseUrl
+
+v1.0.14 — 2026-05-18
+• 结构化日志系统：四级日志 (Info/Warn/Error/Fatal) + 环形缓冲区
+• 崩溃日志自动写入: crash-logs/crash_*.log
+• 日志上传: Gitee API v5 上传到专用私有仓库
+• 上传对话框: 摘要预览 + 查看 + 上传/重试
+• 启动时检查 .pending_upload 并弹窗询问上传
+
+v1.0.13 — 2026-05-18
 • 修复冻结画刷动画异常：StatusBar Background 动画前自动 Clone 防冻结
 • Windows 10 兼容性：解决资源字典画刷密封导致 InvalidOperationException
 

@@ -6,7 +6,7 @@ namespace LeafNeko.DeployTool.Services;
 
 public class RepoService
 {
-    public const string BaseUrl = "https://gitee.com/LeafNeko-QwQ/zip-deploy-manifest/raw/main/";
+    public const string BaseUrl = "https://gitee.com/LeafNeko-QwQ/zip-deploy-manifest/raw/master/";
 
     private readonly HttpClient _http;
 

@@ -33,7 +33,7 @@ public class LogUploadService
             if (!File.Exists(localPath))
                 return UploadResult.Fail("文件不存在: " + localPath);
 
-            var content = await File.ReadAllTextAsync(localPath);
+            var content = await ReadAllTextSafeAsync(localPath);
             var sanitized = Sanitize(content);
 
             var remoteName = BuildRemoteFileName(localPath);
@@ -127,6 +127,13 @@ public class LogUploadService
         content = Regex.Replace(content, @"(access_token|private_key|secret)\s*[=:]\s*\S+",
             "$1=***REDACTED***", RegexOptions.IgnoreCase);
         return content;
+    }
+
+    private static async Task<string> ReadAllTextSafeAsync(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(fs);
+        return await reader.ReadToEndAsync();
     }
 
     private static string ParseGiteeError(string json)
