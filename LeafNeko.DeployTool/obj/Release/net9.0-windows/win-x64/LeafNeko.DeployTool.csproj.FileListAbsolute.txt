@@ -430,3 +430,5 @@ H:\develop\DNBZ\LeafNeko.DeployTool\bin\Release\net9.0-windows\win-x64\assets\si
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\ConfirmDialog.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\ConfirmDialog.g.cs
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\LeafNeko.DeployTool_Content.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\LogUploadDialog.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Release\net9.0-windows\win-x64\Views\LogUploadDialog.g.cs

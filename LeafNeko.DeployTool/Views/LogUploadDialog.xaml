@@ -1,0 +1,71 @@
+<Window x:Class="LeafNeko.DeployTool.Views.LogUploadDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="上传日志"
+        Icon="/Resources/logo.png"
+        Width="480" Height="420"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="True"
+        ResizeMode="NoResize"
+        Background="Transparent"
+        KeyDown="Window_KeyDown">
+
+    <Border CornerRadius="16" Background="{DynamicResource CardBackgroundBrush}"
+            BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
+            MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect Color="#1A000000" BlurRadius="20" ShadowDepth="4" Opacity="0.3"/>
+        </Border.Effect>
+        <Grid Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 -->
+            <Border Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Cursor="Hand"
+                    Margin="0,0,0,12">
+                <TextBlock x:Name="TitleText" Text="上传日志"
+                           FontSize="16" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+            </Border>
+
+            <!-- 分割线 -->
+            <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderLightBrush}"
+                    Margin="0,0,0,12"/>
+
+            <!-- 日志摘要 -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="SummaryText"
+                           FontSize="12" FontFamily="Consolas"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="NoWrap"
+                           TextOptions.TextFormattingMode="Display"
+                           TextOptions.TextRenderingMode="ClearType"/>
+            </ScrollViewer>
+
+            <!-- 按钮区 -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button x:Name="ViewBtn"
+                        Content="查看"
+                        Width="80" Height="36" FontSize="13"
+                        Style="{DynamicResource SecondaryButton}"
+                        Margin="0,0,12,0"
+                        Click="ViewBtn_Click"/>
+                <Button x:Name="CancelBtn"
+                        Content="取消"
+                        Width="80" Height="36" FontSize="13"
+                        Style="{DynamicResource SecondaryButton}"
+                        Margin="0,0,12,0"
+                        Click="CancelBtn_Click"/>
+                <Button x:Name="UploadBtn"
+                        Content="上传"
+                        Width="80" Height="36" FontSize="13"
+                        Style="{DynamicResource PrimaryButton}"
+                        Click="UploadBtn_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

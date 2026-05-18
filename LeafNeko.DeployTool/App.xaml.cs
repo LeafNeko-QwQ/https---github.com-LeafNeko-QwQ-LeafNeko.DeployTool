@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using LeafNeko.DeployTool.Helpers;
@@ -34,27 +34,29 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // 全局崩溃捕获 — 写入桌面 crash.log
-        var crashLog = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            "leafneko_crash.log");
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        // 初始化结构化日志系统
+        LoggerService.Init();
+
+        // 全局崩溃捕获
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception;
-            System.IO.File.WriteAllText(crashLog,
-                $"=== 未处理异常 ===\n{DateTime.Now}\n{ex}\n");
+            LoggerService.Fatal("App", $"未处理异常: {ex?.Message}");
+            if (ex != null) LoggerService.WriteCrashLog(ex);
+            if (!IsUserCancel(ex))
+                PromptUploadOnNextLaunch();
         };
         DispatcherUnhandledException += (_, args) =>
         {
-            System.IO.File.WriteAllText(crashLog,
-                $"=== Dispatcher 异常 ===\n{DateTime.Now}\n{args.Exception}\n");
+            LoggerService.Fatal("App", $"Dispatcher 异常: {args.Exception.Message}");
+            LoggerService.WriteCrashLog(args.Exception);
             args.Handled = true;
+
+            if (!IsUserCancel(args.Exception))
+                Dispatcher.BeginInvoke(() => ShowCrashUploadDialog(args.Exception));
         };
-
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        // 初始化文件日志 — 所有 Trace.WriteLine 自动写入日志文件
-        SetupFileLogging();
 
         var config = DeployConfig.Load();
 
@@ -131,26 +133,41 @@ public partial class App : Application
     {
         _trayIcon?.Dispose();
         _trayIcon = null;
-        Trace.WriteLine($"[App] 应用退出 — {DateTime.Now}");
+        LoggerService.Info("App", "应用退出");
         Trace.Flush();
         base.OnExit(e);
     }
 
-    private static void SetupFileLogging()
+    private static bool IsUserCancel(Exception? ex)
+    {
+        if (ex is OperationCanceledException oce && oce.CancellationToken.IsCancellationRequested)
+            return true;
+        // 递归检查 InnerException（异步操作可能包裹在 AggregateException 中）
+        if (ex is AggregateException ae)
+            return ae.InnerExceptions.Any(IsUserCancel);
+        return ex?.InnerException != null && IsUserCancel(ex.InnerException);
+    }
+
+    private static void PromptUploadOnNextLaunch()
     {
         try
         {
-            PathHelper.EnsureAll();
-            var logFile = Path.Combine(PathHelper.LogsDir, $"deploytool_{DateTime.Now:yyyyMMdd}.log");
-            var listener = new TextWriterTraceListener(logFile, "FileLogger");
-            Trace.Listeners.Add(listener);
-            Trace.AutoFlush = true;
-            Trace.WriteLine($"[App] 日志已启动 — {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            PathHelper.CleanOldLogs(7);
+            var flagFile = System.IO.Path.Combine(PathHelper.CrashLogsDir, ".pending_upload");
+            System.IO.File.WriteAllText(flagFile, DateTime.Now.ToString("O"));
         }
-        catch
+        catch { }
+    }
+
+    private static void ShowCrashUploadDialog(Exception ex)
+    {
+        var summary = "检测到程序崩溃，是否上传日志帮助开发者排查问题？\n\n"
+                      + $"错误: {ex.Message}\n\n"
+                      + LoggerService.GetLogSummary();
+        var files = LoggerService.CollectLogFiles();
+        var dialog = new LogUploadDialog(summary, files)
         {
-            // 日志初始化失败不阻塞启动
-        }
+            Owner = Current.MainWindow
+        };
+        dialog.ShowDialog();
     }
 }

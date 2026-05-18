@@ -41,7 +41,14 @@ public partial class StatusBar : UserControl
     public StatusBar()
     {
         InitializeComponent();
-        StatusBorder.Background = PersistentBg;
+        StatusBorder.Background = PersistentBg.Clone();
+    }
+
+    /// <summary>确保 Background 可写，避免对冻结画刷执行动画时抛出 InvalidOperationException</summary>
+    private void EnsureWritableBackground()
+    {
+        if (StatusBorder.Background is SolidColorBrush brush && brush.IsFrozen)
+            StatusBorder.Background = brush.Clone();
     }
 
     public void SetPersistentText(string text)
@@ -53,6 +60,7 @@ public partial class StatusBar : UserControl
     {
         // 取消所有进行中的动画，避免堆积
         StatusBorder.BeginAnimation(OpacityProperty, null);
+        EnsureWritableBackground();
         StatusBorder.Background.BeginAnimation(SolidColorBrush.ColorProperty, null);
         KillTimer();
         StopPulse();
@@ -95,6 +103,7 @@ public partial class StatusBar : UserControl
             var targetBg = GetBrushForState(state);
             if (targetBg is SolidColorBrush scb && StatusBorder.Background is SolidColorBrush oldBg)
             {
+                EnsureWritableBackground();
                 var colorAnim = new ColorAnimation(oldBg.Color, scb.Color, TimeSpan.FromMilliseconds(200))
                 {
                     EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -180,6 +189,7 @@ public partial class StatusBar : UserControl
     private void ShowPersistent()
     {
         StatusBorder.BeginAnimation(OpacityProperty, null);
+        EnsureWritableBackground();
         StatusBorder.Background.BeginAnimation(SolidColorBrush.ColorProperty, null);
 
         if (StatusBorder.Visibility == Visibility.Visible && StatusBorder.Opacity > 0.2)
@@ -198,6 +208,7 @@ public partial class StatusBar : UserControl
                         psb.Color,
                         TimeSpan.FromMilliseconds(200))
                     { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+                    EnsureWritableBackground();
                     StatusBorder.Background.BeginAnimation(SolidColorBrush.ColorProperty, colorAnim);
                 }
                 else
@@ -217,7 +228,7 @@ public partial class StatusBar : UserControl
         else
         {
             StopPulse();
-            StatusBorder.Background = PersistentBg;
+            StatusBorder.Background = PersistentBg.Clone();
             StatusText.Foreground = DarkTextBrush;
             StatusText.Text = _persistentText;
             StatusBorder.Visibility = Visibility.Visible;
@@ -264,6 +275,7 @@ public partial class StatusBar : UserControl
 
     private void FlashRed()
     {
+        EnsureWritableBackground();
         var flash = new ColorAnimation
         {
             From = Color.FromRgb(0xFF, 0x17, 0x17),

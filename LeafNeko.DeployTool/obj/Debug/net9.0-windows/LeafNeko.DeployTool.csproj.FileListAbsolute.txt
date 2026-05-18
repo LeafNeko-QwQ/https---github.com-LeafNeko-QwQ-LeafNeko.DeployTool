@@ -40,3 +40,5 @@ H:\develop\DNBZ\LeafNeko.DeployTool\bin\Debug\net9.0-windows\assets\sigma_disabl
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDialog.baml
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\ConfirmDialog.g.cs
 H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\LeafNeko.DeployTool_Content.g.cs
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\LogUploadDialog.baml
+H:\develop\DNBZ\LeafNeko.DeployTool\obj\Debug\net9.0-windows\Views\LogUploadDialog.g.cs

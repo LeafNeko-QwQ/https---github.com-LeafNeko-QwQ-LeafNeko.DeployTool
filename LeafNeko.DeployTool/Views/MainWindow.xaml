@@ -43,8 +43,12 @@
                                MouseLeftButtonDown="BilibiliLink_Click"/>
                     <TextBlock Text="Gitee" FontSize="13"
                                Foreground="{DynamicResource PrimaryBrush}"
-                               Cursor="Hand"
+                               Cursor="Hand" Margin="0,0,16,0"
                                MouseLeftButtonDown="GiteeLink_Click"/>
+                    <TextBlock Text="📤" FontSize="14"
+                               Cursor="Hand" Margin="0,0,16,0"
+                               MouseLeftButtonDown="UploadLog_Click"
+                               ToolTip="上传运行日志"/>
                 </StackPanel>
             </Grid>
         </Border>

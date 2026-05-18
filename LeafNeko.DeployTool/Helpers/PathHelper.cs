@@ -18,6 +18,7 @@ public static class PathHelper
     public static string ExtractDir => Path.Combine(BaseDir, "extract");
     public static string ShortcutsDir => Path.Combine(BaseDir, "shortcuts");
     public static string LogsDir => Path.Combine(BaseDir, "logs");
+    public static string CrashLogsDir => Path.Combine(BaseDir, "crash-logs");
 
     public static void EnsureAll()
     {
@@ -26,6 +27,7 @@ public static class PathHelper
         Directory.CreateDirectory(ExtractDir);
         Directory.CreateDirectory(ShortcutsDir);
         Directory.CreateDirectory(LogsDir);
+        Directory.CreateDirectory(CrashLogsDir);
     }
 
     /// <summary>

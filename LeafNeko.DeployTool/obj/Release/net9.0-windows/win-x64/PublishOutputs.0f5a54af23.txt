@@ -1,2 +1,6 @@
 H:\develop\DNBZ\publish\LeafNeko.DeployTool.pdb
+H:\develop\DNBZ\publish\assets\bind_done.wav
+H:\develop\DNBZ\publish\assets\disable.wav
+H:\develop\DNBZ\publish\assets\icechime.wav
+H:\develop\DNBZ\publish\assets\sigma_disable.wav
 H:\develop\DNBZ\publish\LeafNeko.DeployTool.exe

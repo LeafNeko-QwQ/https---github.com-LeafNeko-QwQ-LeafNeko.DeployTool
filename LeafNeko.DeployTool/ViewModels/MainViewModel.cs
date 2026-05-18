@@ -92,7 +92,11 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void InitChangelog()
     {
-        ChangelogText = @"v1.0.12 — 2026-05-17
+        ChangelogText = @"v1.0.13 — 2026-05-18
+• 修复冻结画刷动画异常：StatusBar Background 动画前自动 Clone 防冻结
+• Windows 10 兼容性：解决资源字典画刷密封导致 InvalidOperationException
+
+v1.0.12 — 2026-05-17
 • 动画引擎重构：集中式游戏循环 (AnimationDriver)
 • 动画对象复用：预建模板 Clone() 替代重复 new
 • 批量选择优化：50 次遍历 → 1 次

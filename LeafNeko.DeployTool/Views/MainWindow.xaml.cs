@@ -66,6 +66,7 @@ public partial class MainWindow : Window
             AppCard.RetryRequested += OnRetryAppRequested;
             _ = CheckSelfUpdateAsync();
             _ = _repo.MeasureSpeedAsync();
+            _ = CheckPendingCrashUploadAsync();
         }
         catch (Exception ex)
         {
@@ -197,6 +198,46 @@ public partial class MainWindow : Window
     private void GiteeLink_Click(object sender, MouseButtonEventArgs e)
     {
         Process.Start(new ProcessStartInfo("https://gitee.com/LeafNeko-QwQ/zip-deploy-manifest") { UseShellExecute = true });
+    }
+
+    private void UploadLog_Click(object sender, MouseButtonEventArgs e)
+    {
+        var summary = LoggerService.GetLogSummary();
+        var files = LoggerService.CollectLogFiles();
+        var dialog = new LogUploadDialog(summary, files) { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private async Task CheckPendingCrashUploadAsync()
+    {
+        try
+        {
+            var flagFile = System.IO.Path.Combine(PathHelper.CrashLogsDir, ".pending_upload");
+            if (!System.IO.File.Exists(flagFile)) return;
+
+            System.IO.File.Delete(flagFile);
+
+            // 给界面一点时间渲染完成
+            await Task.Delay(2000);
+
+            Dispatcher.Invoke(() =>
+            {
+                var crashFiles = Directory.GetFiles(PathHelper.CrashLogsDir, "crash_*.log");
+                if (crashFiles.Length == 0) return;
+
+                var latestCrash = crashFiles.OrderByDescending(System.IO.File.GetLastWriteTime).First();
+                var info = new System.IO.FileInfo(latestCrash);
+                var summary = "检测到上次程序崩溃的记录，是否上传日志帮助开发者排查问题？\n\n"
+                              + $"崩溃时间: {System.IO.File.GetLastWriteTime(latestCrash):yyyy-MM-dd HH:mm:ss}\n"
+                              + $"文件大小: {info.Length / 1024} KB\n\n"
+                              + LoggerService.GetLogSummary();
+
+                var files = LoggerService.CollectLogFiles();
+                var dialog = new LogUploadDialog(summary, files) { Owner = this };
+                dialog.ShowDialog();
+            });
+        }
+        catch { }
     }
 
     #endregion
